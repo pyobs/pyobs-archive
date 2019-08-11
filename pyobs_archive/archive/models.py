@@ -1,4 +1,10 @@
+import math
+
+from astropy.time import Time
 from django.db import models
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class Telescope(models.Model):
@@ -50,3 +56,71 @@ class Image(models.Model):
     height = models.IntegerField('Height of image in binned pixels')
     data_mean = models.FloatField('Mean data value')
     quality = models.FloatField('Estimation of image quality (0..1)')
+
+    def __str__(self):
+        return self.filename
+
+    def add_fits_header(self, header):
+        """Add properties from FITS headers.
+
+        Args:
+            header (Header): FITS header to take data from.
+        """
+
+        # dates
+        if 'DATE-OBS' in header:
+            self.date_obs = Time(header['DATE-OBS']).to_datetime()
+        else:
+            raise ValueError('Could not find DATE-OBS in FITS header.')
+
+        # telescope and instrument
+        print(header['TELESCOP'])
+        self.telescope = Telescope.objects.get(name=header['TELESCOP'])
+        self.instrument = Instrument.objects.get(name=header['INSTRUME'])
+        self.image_type = header['IMAGETYP'] if 'IMAGETYP' in header else None
+
+        # binning
+        if 'XBINNING' in header and 'YBINNING' in header:
+            self.binning = header['XBINNING']
+        elif 'XBIN' in header and 'YBIN' in header:
+            self.binning = header['XBIN']
+        else:
+            log.warning('Missing or invalid XBINNING and/or YBINNING in FITS header.')
+
+        # telescope stuff
+        if 'OBJRA' in header and 'OBJDEC' in header:
+            self.tel_ra = header['OBJRA']
+            self.tel_dec = header['OBJDEC']
+            ra = math.radians(header['OBJRA'])
+            dec = math.radians(header['OBJDEC'])
+            self.vec_x = math.cos(dec) * math.cos(ra)
+            self.vec_y = math.cos(dec) * math.sin(ra)
+            self.vec_z = math.sin(dec)
+        if 'TEL-ALT' in header and 'TEL-AZ' in header:
+            self.tel_alt = header['TEL-ALT']
+            self.tel_az = header['TEL-AZ']
+        if 'TEL-FOCU' in header:
+            self.tel_focus = header['TEL-FOCU']
+
+        # environment
+        if 'SOL-ALT' in header:
+            self.sol_alt = header['SOL-ALT']
+        if 'MOON-ALT' in header:
+            self.moon_alt = header['MOON-ALT']
+        if 'MOON-ILL' in header:
+            self.moon_ill = header['MOON-ILL']
+        if 'MOON-SEP' in header:
+            self.moon_sep = header['MOON-SEP']
+
+        # image size and offset
+        self.width = header['NAXIS1']
+        self.height = header['NAXIS2']
+        self.offset_x = header['XORGSUBF'] if 'XORGSUBF' in header else 0
+        self.offset_y = header['YORGSUBF'] if 'YORGSUBF' in header else 0
+
+        # other stuff
+        self.target = header['OBJNAME'] if 'OBJNAME' in header else header['OBJECT']
+        self.exp_time = header['EXPTIME']
+        self.filter = header['FILTER']
+        self.data_mean = header['DATAMEAN']
+        self.quality = 1

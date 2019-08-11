@@ -1,17 +1,15 @@
-import json
-
-from django.shortcuts import render
-
-# Create your views here.
-
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
-import io
+import logging
 
 from pyobs_archive.archive.models import Image
+from pyobs_archive.archive.utils import FilenameFormatter
+
+
+log = logging.getLogger(__name__)
 
 
 @ensure_csrf_cookie
@@ -38,15 +36,31 @@ class ImagesController(View):
             })
 
         response = list(Image.objects.order_by('-date_obs').values())
-        print(response)
         return JsonResponse({'results': response})
 
     def post(self, request, *args, **kwargs):
-        print("post")
-        print(request.POST)
-        print(request.FILES)
-        #with io.StringIO(request.POST['image']) as bio:
-        f = fits.open(request.FILES['image'])
-        print(f[0].header)
+        # create filename formatter
+        ff = FilenameFormatter('{TELESCOP|lower}/{DAY-OBS|date:}/raw/{TELESCOP|lower}_{DAY-OBS|date:}_{IMAGETYP}.fits')
 
-        return JsonResponse({'created': 1})
+        # loop all incoming files
+        filenames = []
+        for key in request.FILES:
+            # open file
+            f = fits.open(request.FILES[key])
+
+            # create image and set fits headers
+            img = Image()
+            img.add_fits_header(f[0].header)
+
+            # get filename in archive
+            img.filename = ff(f[0].header)
+            filenames.append(img.filename)
+
+            # write to database
+            img.save()
+            log.info('Stored image as %s...', img.filename)
+
+            # close file
+            f.close()
+
+        return JsonResponse({'created': len(filenames), 'filenames': filenames})
