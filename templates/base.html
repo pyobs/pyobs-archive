@@ -3,14 +3,17 @@
 <html>
 <head>
     <title>pyobs archive</title>
-    <script src="{% static "jquery.min.js" %}"></script>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.15.3/dist/bootstrap-table.min.css">
     <link rel="stylesheet" href="{% static "bootstrap.min.css" %}">
+    <script src="{% static "jquery.min.js" %}"></script>
     <script src="{% static "bootstrap.min.js" %}"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.15.3/dist/bootstrap-table.min.js"></script>
 </head>
-
+<body>
 <div class="container">
-<h1>pyobs archive</h1>
-{% block content %}
-{% endblock %}
+    <h1>pyobs archive</h1>
+    {% block content %}
+    {% endblock %}
 </div>
+</body>
 </html>

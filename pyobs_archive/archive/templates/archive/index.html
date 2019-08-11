@@ -1,5 +1,41 @@
 {% extends 'base.html' %}
 {% block content %}
+<script>
+  $(function() {
+    $('#table').bootstrapTable({
+      url: '/images/',
+      columns: [{
+        field: 'id',
+        title: 'ID',
+        sortable: true
+      }, {
+        field: 'filename',
+        title: 'Filename',
+        sortable: true
+      }, {
+          field: 'date_obs',
+          title: 'Time',
+          sortable: true,
+      }, {
+          field: 'target',
+          title: 'Target',
+          sortable: true,
+      }, {
+          field: 'image_type',
+          title: 'Type',
+          sortable: true,
+      }, {
+        field: 'exp_time',
+        title: 'ExpTime',
+        sortable: true
+      }],
+      responseHandler: function (res) {
+        return res.results
+      }
+    })
+  })
+</script>
+
     <div class="row">
         <div class="col-2">
             <form id="query-form">
@@ -7,13 +43,14 @@
                     <label for="object">Object</label>
                     <span class="text-muted" data-toggle="tooltip" data-placement="bottom"
                           title="As written to fits header. Not an exact match: returns all frames with the given text included in the OBJECT header."><sup>?</sup></span>
-                    <input id="object" rv-value="params.OBJECT" type="input" class="form-control form-control-sm keyup"/>
+                    <input id="object" rv-value="params.OBJECT" type="input"
+                           class="form-control form-control-sm keyup"/>
 
                 </div>
             </form>
         </div>
         <div class="col-10">
-            World
+            <table id="table" class="table"></table>
         </div>
     </div>
 {% endblock %}
