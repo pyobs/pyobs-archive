@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class QueryConfig(AppConfig):
-    name = 'pyobs_archive.query'
+    name = 'pyobs_archive.archive'

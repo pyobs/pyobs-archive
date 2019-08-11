@@ -7,6 +7,6 @@ from django.template import loader
 
 
 def index(request):
-    template = loader.get_template('query/index.html')
+    template = loader.get_template('archive/index.html')
     context = {}
     return HttpResponse(template.render(context, request))

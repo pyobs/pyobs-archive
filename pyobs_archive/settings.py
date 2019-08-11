@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'pyobs_archive.query'
+    'pyobs_archive.archive'
 ]
 
 MIDDLEWARE = [
