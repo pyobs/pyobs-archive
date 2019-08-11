@@ -1,4 +1,19 @@
 {% extends 'base.html' %}
 {% block content %}
-Hello world!
+    <div class="row">
+        <div class="col-2">
+            <form id="query-form">
+                <div class="form-group">
+                    <label for="object">Object</label>
+                    <span class="text-muted" data-toggle="tooltip" data-placement="bottom"
+                          title="As written to fits header. Not an exact match: returns all frames with the given text included in the OBJECT header."><sup>?</sup></span>
+                    <input id="object" rv-value="params.OBJECT" type="input" class="form-control form-control-sm keyup"/>
+
+                </div>
+            </form>
+        </div>
+        <div class="col-10">
+            World
+        </div>
+    </div>
 {% endblock %}
