@@ -127,3 +127,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+
+# App settings
+
+ARCHIV_SETTINGS = {
+    'ARCHIVE_ROOT': '/opt/pyobs/data/',
+    'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
+    'FILENAME_FORMATTER': None,
+}

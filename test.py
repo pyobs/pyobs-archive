@@ -7,9 +7,9 @@ print(s.cookies)
 print(s.cookies['csrftoken'])
 
 
-filename = '/data/astro/temp/monet/data/monets/20180325/science20180325S-0014EXP0163.fits'
+filename = '/users/husser/Downloads/monets1m2-kb01-20190811-0005-e00.fits'
 files = {'image': open(filename, 'rb')}
 url = 'http://127.0.0.1:8000/images/'
 r = s.post(url, data={'csrfmiddlewaretoken': s.cookies['csrftoken']}, files=files)
 
-print(r.text)
+print(r.status_code)

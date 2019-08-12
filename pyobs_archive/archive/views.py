@@ -1,8 +1,12 @@
+import gzip
+import os
+
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
+from django.conf import settings
 import logging
 
 from pyobs_archive.archive.models import Image
@@ -39,8 +43,18 @@ class ImagesController(View):
         return JsonResponse({'results': response})
 
     def post(self, request, *args, **kwargs):
-        # create filename formatter
-        ff = FilenameFormatter('{TELESCOP|lower}/{DAY-OBS|date:}/raw/{TELESCOP|lower}_{DAY-OBS|date:}_{IMAGETYP}.fits')
+        # create path and filename formatter
+        if 'PATH_FORMATTER' in settings.ARCHIV_SETTINGS and settings.ARCHIV_SETTINGS['PATH_FORMATTER'] is not None:
+            path_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['PATH_FORMATTER'])
+        else:
+            return JsonResponse({'error': 'No path formatter configured.'}, status=500)
+        filename_fmt = None
+        if 'FILENAME_FORMATTER' in settings.ARCHIV_SETTINGS and \
+                settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'] is not None:
+            filename_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'])
+
+        # get archive root
+        root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
 
         # loop all incoming files
         filenames = []
@@ -48,19 +62,46 @@ class ImagesController(View):
             # open file
             f = fits.open(request.FILES[key])
 
-            # create image and set fits headers
-            img = Image()
-            img.add_fits_header(f[0].header)
+            # get path for archive
+            path = path_fmt(f[0].header)
 
-            # get filename in archive
-            img.filename = ff(f[0].header)
-            filenames.append(img.filename)
+            # get filename for archive
+            if isinstance(filename_fmt, FilenameFormatter):
+                name = filename_fmt(f[0].header)
+            else:
+                tmp = request.FILES[key].name
+                name = os.path.basename(tmp[:tmp.find('.')])
+
+            # store it
+            filenames.append(name)
+
+            # find or create image
+            if Image.objects.filter(name=name).exists():
+                img = Image.objects.get(name=name)
+            else:
+                img = Image()
+
+            # set headers
+            img.path = path
+            img.name = name
+            img.add_fits_header(f[0].header)
 
             # write to database
             img.save()
-            log.info('Stored image as %s...', img.filename)
+
+            # create path if necessary
+            filename = os.path.join(root, path, name + '.fits.fz')
+            file_path = os.path.dirname(filename)
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+
+            # write to disk
+            gz = gzip.open(os.path.join(root, path, name + '.fits.gz'), 'wb')
+            f.writeto(gz)
+            gz.close()
 
             # close file
             f.close()
+            log.info('Stored image as %s...', img.name)
 
         return JsonResponse({'created': len(filenames), 'filenames': filenames})
