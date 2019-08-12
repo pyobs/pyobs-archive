@@ -35,8 +35,13 @@ class ImagesController(View):
         for i in Image.objects.order_by('-date_obs')[:5]:
             response.append({
                 'id': i.id,
-                'filename': i.filename,
-                'exp_time': i.exp_time
+                'name': i.name,
+                'time': i.date_obs,
+                'target': i.target,
+                'filter': i.filter,
+                'type': i.image_type,
+                'exp_time': i.exp_time,
+                'rlevel': i.reduction_level
             })
 
         response = list(Image.objects.order_by('-date_obs').values())
@@ -60,14 +65,14 @@ class ImagesController(View):
         filenames = []
         for key in request.FILES:
             # open file
-            f = fits.open(request.FILES[key])
+            fits_file = fits.open(request.FILES[key])
 
             # get path for archive
-            path = path_fmt(f[0].header)
+            path = path_fmt(fits_file['SCI'].header)
 
             # get filename for archive
             if isinstance(filename_fmt, FilenameFormatter):
-                name = filename_fmt(f[0].header)
+                name = filename_fmt(fits_file['SCI'].header)
             else:
                 tmp = request.FILES[key].name
                 name = os.path.basename(tmp[:tmp.find('.')])
@@ -84,24 +89,31 @@ class ImagesController(View):
             # set headers
             img.path = path
             img.name = name
-            img.add_fits_header(f[0].header)
+            img.add_fits_header(fits_file['SCI'].header)
 
             # write to database
             img.save()
 
+            # loop all HDUs and convert to CompImageHDUs, if necessary/possible
+            hdu_list = fits.HDUList()
+            for i in fits_file:
+                if type(fits_file[i]) in [fits.hdu.image.ImageHDU, fits.hdu.image.PrimaryHDU]:
+                    # convert
+                    hdu_list.append(fits.CompImageHDU(fits_file[i].data, fits_file[i].header))
+                else:
+                    # just copy
+                    hdu_list.append(fits_file[i])
+
             # create path if necessary
-            filename = os.path.join(root, path, name + '.fits.fz')
-            file_path = os.path.dirname(filename)
+            file_path = os.path.join(root, path)
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
 
             # write to disk
-            gz = gzip.open(os.path.join(root, path, name + '.fits.gz'), 'wb')
-            f.writeto(gz)
-            gz.close()
+            hdu_list.writeto(os.path.join(file_path, name + '.fits.fz'), overwrite=True)
 
             # close file
-            f.close()
+            fits_file.close()
             log.info('Stored image as %s...', img.name)
 
         return JsonResponse({'created': len(filenames), 'filenames': filenames})

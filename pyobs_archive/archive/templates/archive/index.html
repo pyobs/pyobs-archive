@@ -9,8 +9,8 @@
         title: 'ID',
         sortable: true
       }, {
-        field: 'filename',
-        title: 'Filename',
+        field: 'name',
+        title: 'Name',
         sortable: true
       }, {
           field: 'date_obs',
@@ -27,6 +27,10 @@
       }, {
         field: 'exp_time',
         title: 'ExpTime',
+        sortable: true
+      }, {
+        field: 'rlevel',
+        title: 'R.level',
         sortable: true
       }],
       responseHandler: function (res) {
@@ -50,7 +54,7 @@
             </form>
         </div>
         <div class="col-10">
-            <table id="table" class="table"></table>
+            <table id="table" class="table table-sm"></table>
         </div>
     </div>
 {% endblock %}
