@@ -1,44 +1,47 @@
 {% extends 'base.html' %}
 {% block content %}
-<script>
-  $(function() {
-    $('#table').bootstrapTable({
-      url: '/images/',
-      columns: [{
-        field: 'id',
-        title: 'ID',
-        sortable: true
-      }, {
-        field: 'name',
-        title: 'Name',
-        sortable: true
-      }, {
-          field: 'date_obs',
-          title: 'Time',
-          sortable: true,
-      }, {
-          field: 'target',
-          title: 'Target',
-          sortable: true,
-      }, {
-          field: 'image_type',
-          title: 'Type',
-          sortable: true,
-      }, {
-        field: 'exp_time',
-        title: 'ExpTime',
-        sortable: true
-      }, {
-        field: 'rlevel',
-        title: 'R.level',
-        sortable: true
-      }],
-      responseHandler: function (res) {
-        return res.results
-      }
-    })
-  })
-</script>
+    <script>
+        $(function () {
+            $('#table').bootstrapTable({
+                url: '/images/',
+                pagination: true,
+                sidePagination: 'server',
+                pageList: [10, 25, 50, 100],
+                sortName: 'date_obs',
+                sortOrder: 'desc',
+                showRefresh: true,
+                iconsPrefix: 'fas',
+                showColumns: true,
+                columns: [{
+                    checkbox: true
+                }, {
+                    field: 'name',
+                    title: 'Name',
+                    sortable: true
+                }, {
+                    field: 'date_obs',
+                    title: 'Time',
+                    sortable: true,
+                }, {
+                    field: 'target',
+                    title: 'Target',
+                    sortable: true,
+                }, {
+                    field: 'image_type',
+                    title: 'Type',
+                    sortable: true,
+                }, {
+                    field: 'exp_time',
+                    title: 'ExpTime',
+                    sortable: true
+                }, {
+                    field: 'rlevel',
+                    title: 'R.level',
+                    sortable: true
+                }],
+            })
+        })
+    </script>
 
     <div class="row">
         <div class="col-2">

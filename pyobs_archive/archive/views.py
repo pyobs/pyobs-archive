@@ -12,7 +12,6 @@ import logging
 from pyobs_archive.archive.models import Image
 from pyobs_archive.archive.utils import FilenameFormatter
 
-
 log = logging.getLogger(__name__)
 
 
@@ -29,23 +28,22 @@ class ImagesController(View):
         self.http_method_names = ['get', 'post']
 
     def get(self, request, *args, **kwargs):
-        latest_image_list = Image.objects.order_by('-date_obs')[:5]
+        # get offset and limit
+        offset = int(request.GET.get('offset', default=0))
+        limit = int(request.GET.get('limit', default=10))
 
-        response = []
-        for i in Image.objects.order_by('-date_obs')[:5]:
-            response.append({
-                'id': i.id,
-                'name': i.name,
-                'time': i.date_obs,
-                'target': i.target,
-                'filter': i.filter,
-                'type': i.image_type,
-                'exp_time': i.exp_time,
-                'rlevel': i.reduction_level
-            })
+        # sort
+        sort = request.GET.get('sort', default='date_obs')
+        order = request.GET.get('order', default='asc')
+        sort_string = ('' if order == 'asc' else '-') + sort
 
-        response = list(Image.objects.order_by('-date_obs').values())
-        return JsonResponse({'results': response})
+        # get response
+        data = Image.objects.order_by(sort_string)
+
+        # return them
+        return JsonResponse({'total': len(data),
+                             'totalNotFiltered': len(data),
+                             'rows': list(data.values()[offset:offset + limit])})
 
     def post(self, request, *args, **kwargs):
         # create path and filename formatter
