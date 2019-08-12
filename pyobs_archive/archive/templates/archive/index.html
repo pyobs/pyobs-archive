@@ -1,48 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-    <script>
-        $(function () {
-            $('#table').bootstrapTable({
-                url: '/images/',
-                pagination: true,
-                sidePagination: 'server',
-                pageList: [10, 25, 50, 100],
-                sortName: 'date_obs',
-                sortOrder: 'desc',
-                showRefresh: true,
-                iconsPrefix: 'fas',
-                showColumns: true,
-                columns: [{
-                    checkbox: true
-                }, {
-                    field: 'name',
-                    title: 'Name',
-                    sortable: true
-                }, {
-                    field: 'date_obs',
-                    title: 'Time',
-                    sortable: true,
-                }, {
-                    field: 'target',
-                    title: 'Target',
-                    sortable: true,
-                }, {
-                    field: 'image_type',
-                    title: 'Type',
-                    sortable: true,
-                }, {
-                    field: 'exp_time',
-                    title: 'ExpTime',
-                    sortable: true
-                }, {
-                    field: 'rlevel',
-                    title: 'R.level',
-                    sortable: true
-                }],
-            })
-        })
-    </script>
-
     <div class="row">
         <div class="col-2">
             <form id="query-form">
@@ -52,11 +9,23 @@
                           title="As written to fits header. Not an exact match: returns all frames with the given text included in the OBJECT header."><sup>?</sup></span>
                     <input id="object" rv-value="params.OBJECT" type="input"
                            class="form-control form-control-sm keyup"/>
-
+                </div>
+                <div class="form-group">
+                    <label for="obstype">Obstype</label>
+                    <select id="obstype" class="form-control input-sm change change-filter selectpicker">
+                    </select>
                 </div>
             </form>
         </div>
         <div class="col-10">
+            <div class="toolbar">
+                <select id="select" class="form-control" name="filterAlgorithm">
+                    <option value="and" selected>and</option>
+                    <option value="or">or</option>
+                </select>
+                <button class="btn btn-secondary" id="filterBy">filterBy</button>
+            </div>
+
             <table id="table" class="table table-sm"></table>
         </div>
     </div>

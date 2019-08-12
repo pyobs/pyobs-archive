@@ -115,7 +115,22 @@ def images(request):
     # get response
     data = Image.objects.order_by(sort_string)
 
+    # filter
+    data = data.filter(image_type=request.GET.get('IMAGE_TYPE'))
+
     # return them
     return JsonResponse({'total': len(data),
                          'totalNotFiltered': len(data),
                          'rows': list(data.values()[offset:offset + limit])})
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+def options(request):
+    # get all image types
+    image_types = list(Image.objects.all().values_list('image_type', flat=True).distinct())
+
+    # return all
+    return JsonResponse({
+        'image_types': image_types,
+    })
