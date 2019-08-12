@@ -4,6 +4,8 @@ from astropy.time import Time
 from django.db import models
 import logging
 
+from django.utils.timezone import make_aware
+
 log = logging.getLogger(__name__)
 
 
@@ -79,7 +81,7 @@ class Image(models.Model):
 
         # dates
         if 'DATE-OBS' in header:
-            self.date_obs = Time(header['DATE-OBS']).to_datetime()
+            self.date_obs = make_aware(Time(header['DATE-OBS']).to_datetime())
         else:
             raise ValueError('Could not find DATE-OBS in FITS header.')
 
