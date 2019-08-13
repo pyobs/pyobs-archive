@@ -116,7 +116,9 @@ def images(request):
     data = Image.objects.order_by(sort_string)
 
     # filter
-    data = data.filter(image_type=request.GET.get('IMAGE_TYPE'))
+    f = request.GET.get('IMAGE_TYPE', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(image_type=f)
 
     # return them
     return JsonResponse({'total': len(data),

@@ -50,6 +50,7 @@ $(function () {
         options.change(function() {
            $('#table').bootstrapTable('refresh');
         });
+        options.append($("<option />").val('ALL').text('ALL'));
         $.each(data.image_types, function (item) {
             let t = data.image_types[item];
             options.append($("<option />").val(t).text(t));

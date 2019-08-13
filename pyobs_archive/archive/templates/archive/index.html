@@ -2,30 +2,65 @@
 {% block content %}
     <div class="row">
         <div class="col-2">
-            <form id="query-form">
-                <div class="form-group">
-                    <label for="object">Object</label>
-                    <span class="text-muted" data-toggle="tooltip" data-placement="bottom"
-                          title="As written to fits header. Not an exact match: returns all frames with the given text included in the OBJECT header."><sup>?</sup></span>
-                    <input id="object" rv-value="params.OBJECT" type="input"
-                           class="form-control form-control-sm keyup"/>
+            <form id="query-form" class="col-form-label-sm mb-0">
+                <label for="basename" class="col-form-label-sm mb-0">Basename</label>
+                <input id="basename" type="input" class="form-control form-control-sm"/>
+
+                <label for="location" class="col-form-label-sm mb-0">Point</label>
+                <div class="input-group" id="lookup">
+                    <input type="text" placeholder="Search Sources" class="form-control form-control-sm"/>
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" id="lookup-btn">
+                            <span class="fas fa-search"></span>
+                        </button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="obstype">Obstype</label>
-                    <select id="obstype" class="form-control input-sm change change-filter selectpicker">
-                    </select>
+                <div id="location" class="form-inline">
+                    <div class="input-group">
+                        <input id="xloc" class="form-control form-control-sm" placeholder="RA"/>
+                        <input id="yloc" class="form-control form-control-sm" placeholder="Dec"/>
+                    </div>
                 </div>
+
+                <div class="form-group mb-0">
+                    <label for="object" class="col-form-label-sm mb-0">Object</label>
+                    <input id="object" type="input" class="form-control form-control-sm"/>
+                </div>
+
+                <label for="obstype" class="col-form-label-sm mb-0">Obstype</label>
+                <select id="obstype" class="form-control form-control-sm">
+                </select>
+
+                <label for="rlevel" class="col-form-label-sm mb-0">Reduction Level</label>
+                <select id="rlevel" class="form-control form-control-sm">
+                  <option value="ALL">ALL</option>
+                  <option value="0">Raw</option>
+                  <option value="1">Reduced</option>
+                </select>
+
+                <label for="siteid" class="col-form-label-sm mb-0">Site</label>
+                <select id="siteid" class="form-control form-control-sm">
+                </select>
+
+                <label for="telid" class="col-form-label-sm mb-0">Telescope</label>
+                <select id="telid" class="form-control form-control-sm">
+                </select>
+
+                <label for="instrume" class="col-form-label-sm mb-0">Instrument</label>
+                <select id="instrume" class="form-control form-control-sm">
+                </select>
+
+                <label for="filter" class="col-form-label-sm mb-0">Filter</label>
+                <select id="filter" class="form-control form-control-sm">
+                </select>
+
+                <label for="exptime" class="col-form-label-sm mb-0">Exposure Time</label>
+                <input type="number" class="form-control form-control-sm"/>
+
+
             </form>
         </div>
         <div class="col-10">
-            <div class="toolbar">
-                <select id="select" class="form-control" name="filterAlgorithm">
-                    <option value="and" selected>and</option>
-                    <option value="or">or</option>
-                </select>
-                <button class="btn btn-secondary" id="filterBy">filterBy</button>
-            </div>
-
             <table id="table" class="table table-sm"></table>
         </div>
     </div>
