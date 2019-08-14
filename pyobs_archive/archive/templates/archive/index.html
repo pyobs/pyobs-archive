@@ -33,9 +33,9 @@
 
                 <label for="rlevel" class="col-form-label-sm mb-0">Reduction Level</label>
                 <select id="rlevel" class="form-control form-control-sm">
-                  <option value="ALL">ALL</option>
-                  <option value="0">Raw</option>
-                  <option value="1">Reduced</option>
+                    <option value="ALL">ALL</option>
+                    <option value="0">Raw</option>
+                    <option value="1">Reduced</option>
                 </select>
 
                 <label for="siteid" class="col-form-label-sm mb-0">Site</label>
@@ -61,7 +61,15 @@
             </form>
         </div>
         <div class="col-10">
+            <div id="toolbar">
+                <div class="form-inline">
+                    <div class="form-group form-inline">
+                        <div class="btn-toolbar" role="group">
+                            <button id="downloadBtn" class="btn btn-primary">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <table id="table" class="table table-sm"></table>
         </div>
-    </div>
 {% endblock %}

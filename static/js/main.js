@@ -10,6 +10,7 @@ $(function () {
         iconsPrefix: 'fas',
         showColumns: true,
         queryParams: queryParams,
+        toolbar: '#toolbar',
         columns: [{
             checkbox: true
         }, {
