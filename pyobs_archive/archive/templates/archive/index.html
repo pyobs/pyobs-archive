@@ -11,6 +11,9 @@
 <body>
 <div class="container">
     <h1>pyobs archive</h1>
+    <div id="app">
+        {{ message }}
+    </div>
     <div class="row">
         <div class="col-2">
             <form id="query-form" class="col-form-label-sm mb-0">
@@ -38,27 +41,24 @@
                     <input id="object" type="input" class="form-control form-control-sm"/>
                 </div>
 
-                <label for="obstype" class="col-form-label-sm mb-0">Obstype</label>
-                <select id="obstype" class="form-control form-control-sm">
+                <label for="imagetype" class="col-form-label-sm mb-0">Imagetype</label>
+                <select id="imagetype" class="form-control form-control-sm">
                 </select>
 
                 <label for="rlevel" class="col-form-label-sm mb-0">Reduction Level</label>
                 <select id="rlevel" class="form-control form-control-sm">
-                    <option value="ALL">ALL</option>
-                    <option value="0">Raw</option>
-                    <option value="1">Reduced</option>
                 </select>
 
-                <label for="siteid" class="col-form-label-sm mb-0">Site</label>
-                <select id="siteid" class="form-control form-control-sm">
+                <label for="site" class="col-form-label-sm mb-0">Site</label>
+                <select id="site" class="form-control form-control-sm">
                 </select>
 
-                <label for="telid" class="col-form-label-sm mb-0">Telescope</label>
-                <select id="telid" class="form-control form-control-sm">
+                <label for="telescope" class="col-form-label-sm mb-0">Telescope</label>
+                <select id="telescope" class="form-control form-control-sm">
                 </select>
 
-                <label for="instrume" class="col-form-label-sm mb-0">Instrument</label>
-                <select id="instrume" class="form-control form-control-sm">
+                <label for="instrument" class="col-form-label-sm mb-0">Instrument</label>
+                <select id="instrument" class="form-control form-control-sm">
                 </select>
 
                 <label for="filter" class="col-form-label-sm mb-0">Filter</label>
@@ -84,6 +84,7 @@
             <table id="table" class="table table-sm"></table>
         </div>
     </div>
+</div>
 </body>
 <script src="{% static "js/jquery.min.js" %}"></script>
 <script src="{% static "js/popper.js" %}"></script>

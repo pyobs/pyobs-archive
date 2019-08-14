@@ -62,14 +62,14 @@ def create_view(request):
         filenames.append(name)
 
         # find or create image
-        if Image.objects.filter(name=name).exists():
-            img = Image.objects.get(name=name)
+        if Image.objects.filter(basename=name).exists():
+            img = Image.objects.get(basename=name)
         else:
             img = Image()
 
         # set headers
         img.path = path
-        img.name = name
+        img.basename = name
         img.add_fits_header(fits_file['SCI'].header)
 
         # write to database
@@ -95,7 +95,7 @@ def create_view(request):
 
         # close file
         fits_file.close()
-        log.info('Stored image as %s...', img.name)
+        log.info('Stored image as %s...', img.basename)
 
     return JsonResponse({'created': len(filenames), 'filenames': filenames})
 
@@ -108,7 +108,7 @@ def images(request):
     limit = int(request.GET.get('limit', default=10))
 
     # sort
-    sort = request.GET.get('sort', default='date_obs')
+    sort = request.GET.get('sort', default='DATE_OBS')
     order = request.GET.get('order', default='asc')
     sort_string = ('' if order == 'asc' else '-') + sort
 
@@ -116,9 +116,35 @@ def images(request):
     data = Image.objects.order_by(sort_string)
 
     # filter
-    f = request.GET.get('IMAGE_TYPE', 'ALL')
+    f = request.GET.get('IMAGETYPE', 'ALL')
     if f not in ['', 'ALL']:
-        data = data.filter(image_type=f)
+        data = data.filter(IMAGETYP=f)
+    f = request.GET.get('SITE', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(SITEID=f)
+    f = request.GET.get('TELESCOPE', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(TELID=f)
+    f = request.GET.get('INSTRUMENT', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(INSTRUME=f)
+    f = request.GET.get('SITE', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(FILTER=f)
+    f = request.GET.get('RLEVEL', 'ALL')
+    if f not in ['', 'ALL']:
+        data = data.filter(RLEVEL=(0 if f == 'raw' else 1))
+
+    # get columns
+    data = data.only('id', 'basename', 'IMAGETYP', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL', 'DATE_OBS', 'FILTER',
+                     'OBJECT', 'EXPTIME', 'RLEVEL')
+
+    """
+    setOptions($('#site'), data.sites);
+        setOptions($('#telescope'), data.telescopes);
+        setOptions($('#instrument'), data.instruments);
+        setOptions($('#filter'), data.filters);
+    """
 
     # return them
     return JsonResponse({'total': len(data),
@@ -129,10 +155,18 @@ def images(request):
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
 def options(request):
-    # get all image types
-    image_types = list(Image.objects.all().values_list('image_type', flat=True).distinct())
+    # get all options
+    image_types = list(Image.objects.all().values_list('IMAGETYP', flat=True).distinct())
+    sites = list(Image.objects.all().values_list('SITEID', flat=True).distinct())
+    telescopes = list(Image.objects.all().values_list('TELID', flat=True).distinct())
+    instruments = list(Image.objects.all().values_list('INSTRUME', flat=True).distinct())
+    filters = list(Image.objects.all().values_list('FILTER', flat=True).distinct())
 
     # return all
     return JsonResponse({
-        'image_types': image_types,
+        'imagetypes': image_types,
+        'sites': sites,
+        'telescopes': telescopes,
+        'instruments': instruments,
+        'filters': filters
     })
