@@ -22,6 +22,9 @@ class Image(models.Model):
     OBJECT = models.CharField('Name of Object', max_length=50, null=True, default=None)
     TEL_RA = models.FloatField('Telescope Right Ascension', null=True)
     TEL_DEC = models.FloatField('Telescope Declination', null=True)
+    vec_x = models.FloatField('Telescope orientation as vector, x component', null=True)
+    vec_y = models.FloatField('Telescope orientation as vector, y component', null=True)
+    vec_z = models.FloatField('Telescope orientation as vector, z component', null=True)
     TEL_ALT = models.FloatField('Altitude of telescope at start of exposure', null=True, default=None)
     TEL_AZ = models.FloatField('Azimuth of telescope at start of exposure', null=True, default=None)
     TEL_FOCU = models.FloatField('Focus of telescope', null=True, default=None)
@@ -74,6 +77,14 @@ class Image(models.Model):
         # image size and offset
         self.width = header['NAXIS1']
         self.height = header['NAXIS2']
+
+        # position vector
+        if self.TEL_RA is not None and self.TEL_DEC is not None:
+            ra = math.radians(self.TEL_RA)
+            dec = math.radians(self.TEL_DEC)
+            self.vec_x = math.cos(dec) * math.cos(ra)
+            self.vec_y = math.cos(dec) * math.sin(ra)
+            self.vec_z = math.sin(dec)
 
     def _set_header(self, header, keyword):
         """Set the attribute of this object from the FITS header of the same name.
