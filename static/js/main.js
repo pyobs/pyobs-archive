@@ -8,13 +8,13 @@ $(function () {
     $('#table').bootstrapTable({
         url: '/frames/',
         ajax: function ajax(params) {
-            $.ajax(queryParams(params)).fail(function() {
+            $.ajax(queryParams(params)).fail(function () {
                 // show error
             });
         },
         pagination: true,
         sidePagination: 'server',
-        pageList: [10, 25, 50, 100],
+        pageList: [10, 25, 50, 100, 250, 500],
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
         showRefresh: true,
@@ -138,5 +138,24 @@ $(function () {
         setOptions($('#instrument'), data.instruments);
         setOptions($('#filter'), data.filters);
         setOptions($('#rlevel'), ['raw', 'reduced']);
+    });
+
+    function zipDownload() {
+        let selections = $('#table').bootstrapTable('getSelections');
+
+        let frames = [];
+        for (let i = 0; i < selections.length; i++) {
+            frames.push(selections[i].id);
+        }
+
+        $.fileDownload('/frames/zip/', {
+            httpMethod: 'POST',
+            data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
+            headers: {}
+        });
+    }
+
+    $('#downloadBtn').on('click', function () {
+        zipDownload();
     });
 });

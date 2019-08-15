@@ -1,13 +1,13 @@
-import gzip
 import os
 import logging
+import zipfile
+import datetime
 
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -140,13 +140,6 @@ def frames(request):
     data = data.only('id', 'basename', 'IMAGETYP', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL', 'DATE_OBS', 'FILTER',
                      'OBJECT', 'EXPTIME', 'RLEVEL')
 
-    """
-    setOptions($('#site'), data.sites);
-        setOptions($('#telescope'), data.telescopes);
-        setOptions($('#instrument'), data.instruments);
-        setOptions($('#filter'), data.filters);
-    """
-
     # return them
     return JsonResponse({'total': len(data),
                          'totalNotFiltered': len(data),
@@ -172,3 +165,42 @@ def options(request):
         'instruments': instruments,
         'filters': filters
     })
+
+
+class PostAuthentication(TokenAuthentication):
+    def authenticate(self, request):
+        token = request.POST['auth_token']
+        return self.authenticate_credentials(token)
+
+
+@api_view(['POST'])
+@authentication_classes([PostAuthentication])
+@permission_classes([IsAuthenticated])
+def zip(request):
+    # create response
+    response = HttpResponse(content_type='application/zip')
+
+    # create zip file
+    zip_file = zipfile.ZipFile(response, 'w')
+
+    # get archive root
+    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+
+    # get name for archive
+    archive_name = 'pyobsdata-' + datetime.datetime.now().strftime('%Y%m%d')
+
+    # add files
+    for frame_id in request.POST.getlist('frame_ids[]'):
+        # get frame
+        frame = Image.objects.get(id=frame_id)
+
+        # get filename
+        filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+
+        # add file to zip
+        zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))
+
+    # return response
+    response.set_cookie('fileDownload', 'true', path='/')
+    response['Content-Disposition'] = 'attachment; filename={}'.format(archive_name + '.zip')
+    return response
