@@ -2,7 +2,7 @@ import requests
 import glob
 
 headers = {
-    'Authorization': 'Token c29c16b01909922bfc37bde2f7bf9a7fb2d3fc2b'
+    'Authorization': 'Token dead8bc30de0e43f35fe0d40ac2326e5608c1404'
 }
 
 s = requests.session()

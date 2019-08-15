@@ -1,6 +1,17 @@
 $(function () {
+    $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
+        if (localStorage.getItem('token')) {
+            jqXHR.setRequestHeader('Authorization', 'Token ' + localStorage.getItem('token'));
+        }
+    });
+
     $('#table').bootstrapTable({
-        url: '/images/',
+        url: '/frames/',
+        ajax: function ajax(params) {
+            $.ajax(queryParams(params)).fail(function() {
+                // show error
+            });
+        },
         pagination: true,
         sidePagination: 'server',
         pageList: [10, 25, 50, 100],
@@ -41,7 +52,7 @@ $(function () {
             field: 'RLEVEL',
             title: 'R.level',
             sortable: true
-        }],
+        }]
     });
 
     function queryParams(params) {
@@ -75,12 +86,10 @@ $(function () {
     }
 
     function login(username, password, callback) {
-        console.log('login');
         $.post('/api-token-auth/', {
             'username': username,
             'password': password
         }).done(function (data) {
-            console.log(data);
             localStorage.setItem('token', data.token);
             callback(true);
         }).fail(function () {
@@ -100,7 +109,7 @@ $(function () {
                 $('#logout').show();
                 refreshTable();
             } else {
-                if ($("#alert-error").find("div#alert").length==0) {
+                if ($("#alert-error").find("div#alert").length == 0) {
                     $("#alert-error").append("<div class='alert alert-danger alert-dismissable' id='alert'>" +
                         "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button> " +
                         "Login failed.</div>");
@@ -122,7 +131,7 @@ $(function () {
     }
 
     // get options
-    $.getJSON('/options/', function (data) {
+    $.getJSON('/frames/aggregate/', function (data) {
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#site'), data.sites);
         setOptions($('#telescope'), data.telescopes);

@@ -103,7 +103,7 @@ def create_view(request):
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def images(request):
+def frames(request):
     # get offset and limit
     offset = int(request.GET.get('offset', default=0))
     limit = int(request.GET.get('limit', default=10))
@@ -155,6 +155,7 @@ def images(request):
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated])
 def options(request):
     # get all options
     image_types = list(Image.objects.all().values_list('IMAGETYP', flat=True).distinct())
