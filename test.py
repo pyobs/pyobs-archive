@@ -12,6 +12,6 @@ r = s.get('http://127.0.0.1:8000/', headers=headers)
 for filename in glob.glob('/opt/pyobs/temp/*'):
     print(filename)
     files = {'image': open(filename, 'rb')}
-    url = 'http://127.0.0.1:8000/create/'
+    url = 'http://127.0.0.1:8000/frames/create/'
     r = s.post(url, data={'csrfmiddlewaretoken': s.cookies['csrftoken']}, files=files, headers=headers)
     print(r.status_code)
