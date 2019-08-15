@@ -7,10 +7,10 @@ from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
 from django.conf import settings
-from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.archive.models import Image
 from pyobs_archive.archive.utils import FilenameFormatter
@@ -102,6 +102,7 @@ def create_view(request):
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def images(request):
     # get offset and limit
     offset = int(request.GET.get('offset', default=0))
@@ -153,7 +154,7 @@ def images(request):
 
 
 @api_view(['GET'])
-@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication, BasicAuthentication])
 def options(request):
     # get all options
     image_types = list(Image.objects.all().values_list('IMAGETYP', flat=True).distinct())

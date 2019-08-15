@@ -1,0 +1,59 @@
+<!doctype html>
+{% load static %}
+<html>
+<head>
+    <title>pyobs archive</title>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.15.3/dist/bootstrap-table.min.css">
+    <link rel="stylesheet" href="{% static "css/bootstrap.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/fontawesome.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/solid.min.css" %}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">pyobs archive</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+            </li>
+        </ul>
+        <form class="form-inline my-2 my-lg-0" id="login-form">
+            <div class="form-group">
+                <input class="form-control" type="email" placeholder="Email" id="email"/>
+            </div>
+            <div class="form-group">
+                <input class="form-control" type="password" placeholder="Password" id="password"/>
+            </div>
+            <button class="btn btn-success" id="login" onClick="return false;">
+                Sign in
+            </button>
+        </form>
+        <form class="form-inline my-2 my-lg-0" id="logout" style="display:none">
+            <div id="profile" class="form-group">
+                <label for="logout-button" id="username" rv-text="username"></label>
+            </div>
+            <button id="logout-button" class="btn btn-success pull-right" onClick="return false;">
+                Logout
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="alert-error"></div>
+    {% block content %}
+    {% endblock %}
+</div>
+</body>
+<script src="{% static "js/jquery.min.js" %}"></script>
+<script src="{% static "js/popper.js" %}"></script>
+<script src="{% static "js/bootstrap.min.js" %}"></script>
+<script src="https://unpkg.com/bootstrap-table@1.15.3/dist/bootstrap-table.min.js"></script>
+<script src="{% static "js/main.js" %}"></script>
+</html>

@@ -55,14 +55,70 @@ $(function () {
     }
 
     function setOptions(select, options) {
-        select.change(function() {
-           $('#table').bootstrapTable('refresh');
+        select.change(function () {
+            $('#table').bootstrapTable('refresh');
         });
         select.append($("<option />").val('ALL').text('ALL'));
         $.each(options, function (i) {
             let t = options[i];
             select.append($("<option />").val(t).text(t));
         });
+    }
+
+    function refreshTable() {
+        if ($('#table').bootstrapTable('getData').length > 0) {
+            $('#table').bootstrapTable('selectPage', 1);
+        } else {
+            $('#table').bootstrapTable('refresh');
+        }
+        //history.pushState({}, '', '?q=a' + buildQueryParms(rivetsBindings.params));
+    }
+
+    function login(username, password, callback) {
+        console.log('login');
+        $.post('/api-token-auth/', {
+            'username': username,
+            'password': password
+        }).done(function (data) {
+            console.log(data);
+            localStorage.setItem('token', data.token);
+            callback(true);
+        }).fail(function () {
+            callback(false);
+        });
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+    }
+
+    $('#login').click(function () {
+        login($('#email').val(), $('#password').val(), function (result) {
+            if (result) {
+                $('#login-form').hide();
+                $('#alert').alert('close');
+                $('#logout').show();
+                refreshTable();
+            } else {
+                if ($("#alert-error").find("div#alert").length==0) {
+                    $("#alert-error").append("<div class='alert alert-danger alert-dismissable' id='alert'>" +
+                        "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button> " +
+                        "Login failed.</div>");
+                }
+            }
+        });
+    });
+
+    $('#logout').click(function () {
+        logout();
+        $('#login-form').show();
+        $('#logout').hide();
+        refreshTable();
+    });
+
+    if (localStorage.getItem('token') !== null) {
+        $('#login-form').hide();
+        $('#logout').show();
     }
 
     // get options
