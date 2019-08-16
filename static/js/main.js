@@ -1,3 +1,41 @@
+var Utils = {
+
+  isNumeric: function isNumeric(number) {
+    return !isNaN(parseFloat(number) && isFinite(number));
+  },
+
+  sexagesimalRaToDecimal: function sexagesimalRaToDecimal(ra) {
+    // algorithm: ra_decimal = 15 * ( hh + mm/60 + ss/(60 * 60) )
+    /*                 (    hh     ):(     mm            ):  (   ss  ) */
+    var m = ra.match('^([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
+    if (m) {
+      var hh = parseInt(m[1], 10);
+      var mm = parseFloat(m[2]);
+      var ss = m[3] ? parseFloat(m[3]) : 0.0;
+      if (hh >= 0 && hh <= 23 && mm >= 0 && mm < 60 && ss >= 0 && ss < 60) {
+        ra = (15.0 * (hh + mm / 60.0 + ss / 3600.0)).toFixed(10);
+      }
+    }
+    return ra;
+  },
+
+  sexagesimalDecToDecimal: function sexagesimalDecToDecimal(dec) {
+    // algorithm: dec_decimal = sign * ( dd + mm/60 + ss/(60 * 60) )
+    /*                  ( +/-   ) (    dd     ):(     mm            ): (   ss   ) */
+    var m = dec.match('^([+-])?([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
+    if (m) {
+      var sign = m[1] === '-' ? -1 : 1;
+      var dd = parseInt(m[2], 10);
+      var mm = parseFloat(m[3]);
+      var ss = m[4] ? parseFloat(m[4]) : 0.0;
+      if (dd >= 0 && dd <= 90 && mm >= 0 && mm <= 59 && ss >= 0 && ss <= 59) {
+        dec = (sign * (dd + mm / 60.0 + ss / 3600.0)).toFixed(10);
+      }
+    }
+    return dec;
+  }
+};
+
 $(function () {
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
         if (localStorage.getItem('token')) {
@@ -33,8 +71,8 @@ $(function () {
             title: 'Time',
             sortable: true,
         }, {
-            field: 'TARGET',
-            title: 'Target',
+            field: 'OBJECT',
+            title: 'Object',
             sortable: true,
         }, {
             field: 'OBSTYPE',
@@ -62,6 +100,10 @@ $(function () {
         params.INSTRUMENT = $('#instrument').val();
         params.FILTER = $('#filter').val();
         params.RLEVEL = $('#rlevel').val();
+        params.EXPTIME = $('#exptime').val();
+        params.OBJECT = $('#object').val();
+        params.RA = Utils.sexagesimalRaToDecimal($('#xloc').val());
+        params.DEC = Utils.sexagesimalDecToDecimal($('#yloc').val());
         return params;
     }
 
@@ -118,6 +160,15 @@ $(function () {
         });
     });
 
+    $('.keyup').typeWatch({
+        callback: function callback() {
+            refreshTable();
+        },
+        wait: 500,
+        highlight: true,
+        captureLength: 1
+    });
+
     $('#logout').click(function () {
         logout();
         $('#login-form').show();
@@ -158,4 +209,18 @@ $(function () {
     $('#downloadBtn').on('click', function () {
         zipDownload();
     });
+
+    function lookup() {
+        var name = $('#location').val();
+        $.getJSON('https://simbad2k.lco.global/' + name, function (data) {
+            $('#xloc').val(data.ra.replace(/\ /g, ':'));
+            $('#yloc').val(data.dec.replace(/\ /g, ':'));
+            refreshTable();
+        });
+    }
+
+    $('#lookup-btn').click(function () {
+        lookup();
+    });
+//# sourceMappingURL=lookup.js.map
 });

@@ -2,12 +2,14 @@ import os
 import logging
 import zipfile
 import datetime
+import math
 
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
 from django.conf import settings
+from django.db.models import F
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -94,9 +96,6 @@ def create_view(request):
             os.makedirs(file_path)
 
         # write to disk
-        print(filename)
-        print(fits_file['SCI'].header['FNAME'])
-        print(img.id)
         hdu_list.writeto(os.path.join(file_path, filename), overwrite=True)
 
         # close file
@@ -141,6 +140,27 @@ def frames_view(request):
     f = request.GET.get('RLEVEL', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(RLEVEL=(0 if f == 'raw' else 1))
+    f = request.GET.get('OBJECT', '').strip()
+    if f != '':
+        data = data.filter(OBJECT__icontains=f)
+    f = request.GET.get('EXPTIME', '').strip()
+    if f != '':
+        data = data.filter(EXPTIME__gte=float(f))
+
+    # position
+    ra, dec = request.GET.get('RA', '').strip(), request.GET.get('DEC', '').strip()
+    if ra != '' and dec != '':
+        # calculate vector
+        ra = math.radians(float(ra))
+        dec = math.radians(float(dec))
+        vec_x = math.cos(dec) * math.cos(ra)
+        vec_y = math.cos(dec) * math.sin(ra)
+        vec_z = math.sin(dec)
+
+        # query
+        data.annotate(dist=(vec_x-F('vec_x'))**2 + (vec_y-F('vec_y'))**2 + (vec_z-F('vec_z'))**2)\
+            .filter(dist__lte=100./3600.)
+
 
     # return them
     return JsonResponse({'total': len(data),
