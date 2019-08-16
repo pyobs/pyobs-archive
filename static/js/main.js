@@ -37,7 +37,7 @@ $(function () {
             title: 'Target',
             sortable: true,
         }, {
-            field: 'IMAGETYP',
+            field: 'OBSTYPE',
             title: 'Type',
             sortable: true,
         }, {

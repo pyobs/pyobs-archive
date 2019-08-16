@@ -126,6 +126,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 # App settings
 
 ARCHIV_SETTINGS = {
+    'HTTP_ROOT': 'http://localhost:8000/',
     'ARCHIVE_ROOT': '/opt/pyobs/data/',
     'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
     'FILENAME_FORMATTER': None,

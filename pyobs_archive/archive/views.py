@@ -12,7 +12,7 @@ from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from pyobs_archive.archive.models import Image
+from pyobs_archive.archive.models import Frame
 from pyobs_archive.archive.utils import FilenameFormatter
 
 
@@ -58,18 +58,21 @@ def create_view(request):
             tmp = request.FILES[key].name
             name = os.path.basename(tmp[:tmp.find('.')])
 
+        # create new filename and set it in header
+        filename = name + '.fits.fz'
+        fits_file['SCI'].header['FNAME'] = filename
+
         # store it
-        filenames.append(name)
+        filenames.append(filename)
 
         # find or create image
-        if Image.objects.filter(basename=name).exists():
-            img = Image.objects.get(basename=name)
+        if Frame.objects.filter(filename=filename).exists():
+            img = Frame.objects.get(filename=filename)
         else:
-            img = Image()
+            img = Frame()
 
         # set headers
         img.path = path
-        img.basename = name
         img.add_fits_header(fits_file['SCI'].header)
 
         # write to database
@@ -91,11 +94,14 @@ def create_view(request):
             os.makedirs(file_path)
 
         # write to disk
-        hdu_list.writeto(os.path.join(file_path, name + '.fits.fz'), overwrite=True)
+        print(filename)
+        print(fits_file['SCI'].header['FNAME'])
+        print(img.id)
+        hdu_list.writeto(os.path.join(file_path, filename), overwrite=True)
 
         # close file
         fits_file.close()
-        log.info('Stored image as %s...', img.basename)
+        log.info('Stored image as %s...', img.filename)
 
     return JsonResponse({'created': len(filenames), 'filenames': filenames})
 
@@ -103,7 +109,7 @@ def create_view(request):
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def frames(request):
+def frames_view(request):
     # get offset and limit
     offset = int(request.GET.get('offset', default=0))
     limit = int(request.GET.get('limit', default=10))
@@ -114,7 +120,7 @@ def frames(request):
     sort_string = ('' if order == 'asc' else '-') + sort
 
     # get response
-    data = Image.objects.order_by(sort_string)
+    data = Frame.objects.order_by(sort_string)
 
     # filter
     f = request.GET.get('IMAGETYPE', 'ALL')
@@ -136,26 +142,22 @@ def frames(request):
     if f not in ['', 'ALL']:
         data = data.filter(RLEVEL=(0 if f == 'raw' else 1))
 
-    # get columns
-    data = data.only('id', 'basename', 'IMAGETYP', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL', 'DATE_OBS', 'FILTER',
-                     'OBJECT', 'EXPTIME', 'RLEVEL')
-
     # return them
     return JsonResponse({'total': len(data),
                          'totalNotFiltered': len(data),
-                         'rows': list(data.values()[offset:offset + limit])})
+                         'rows': [frame.get_info() for frame in data]})
 
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication, SessionAuthentication, BasicAuthentication])
 @permission_classes([IsAuthenticated])
-def options(request):
+def aggregate_view(request):
     # get all options
-    image_types = list(Image.objects.all().values_list('IMAGETYP', flat=True).distinct())
-    sites = list(Image.objects.all().values_list('SITEID', flat=True).distinct())
-    telescopes = list(Image.objects.all().values_list('TELID', flat=True).distinct())
-    instruments = list(Image.objects.all().values_list('INSTRUME', flat=True).distinct())
-    filters = list(Image.objects.all().values_list('FILTER', flat=True).distinct())
+    image_types = list(Frame.objects.all().values_list('IMAGETYP', flat=True).distinct())
+    sites = list(Frame.objects.all().values_list('SITEID', flat=True).distinct())
+    telescopes = list(Frame.objects.all().values_list('TELID', flat=True).distinct())
+    instruments = list(Frame.objects.all().values_list('INSTRUME', flat=True).distinct())
+    filters = list(Frame.objects.all().values_list('FILTER', flat=True).distinct())
 
     # return all
     return JsonResponse({
@@ -167,6 +169,61 @@ def options(request):
     })
 
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def frame_view(request, frame_id):
+    # get data
+    data = Frame.objects.get(id=frame_id)
+    return JsonResponse(data.get_info())
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated])
+def download_view(request, frame_id):
+    # get frame and filename
+    frame = Frame.objects.get(id=frame_id)
+    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    filename = os.path.join(root, frame.path, frame.filename)
+
+    # send it
+    with open(filename, 'rb') as fh:
+        response = HttpResponse(fh.read(), content_type="image/fits")
+        response.set_cookie('fileDownload', 'true', path='/')
+        response['Content-Disposition'] = 'attachment; filename={}'.format(frame.filename)
+        return response
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def related_view(request, frame_id):
+    # get frame
+    frame = Frame.objects.get(id=frame_id)
+
+    # get all related and return it
+    related = [f.get_info() for f in frame.related.all()]
+    return JsonResponse(related, safe=False)
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def headers_view(request, frame_id):
+    # get frame and filename
+    frame = Frame.objects.get(id=frame_id)
+    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    filename = os.path.join(root, frame.path, frame.filename)
+
+    # load headers
+    hdr = fits.getheader(filename, 'SCI')
+    headers = {k: hdr[k] for k in sorted(hdr.keys())}
+
+    # return them
+    return JsonResponse({'data': headers})
+
+
 class PostAuthentication(TokenAuthentication):
     def authenticate(self, request):
         token = request.POST['auth_token']
@@ -176,7 +233,7 @@ class PostAuthentication(TokenAuthentication):
 @api_view(['POST'])
 @authentication_classes([PostAuthentication])
 @permission_classes([IsAuthenticated])
-def zip(request):
+def zip_view(request):
     # create response
     response = HttpResponse(content_type='application/zip')
 
@@ -192,10 +249,10 @@ def zip(request):
     # add files
     for frame_id in request.POST.getlist('frame_ids[]'):
         # get frame
-        frame = Image.objects.get(id=frame_id)
+        frame = Frame.objects.get(id=frame_id)
 
         # get filename
-        filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+        filename = os.path.join(root, frame.path, frame.filename)
 
         # add file to zip
         zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))

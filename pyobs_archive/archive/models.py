@@ -1,30 +1,32 @@
 import math
-
-from astropy.time import Time
-from django.db import models
 import logging
+import urllib.parse
+from astropy.time import Time
 
+from django.db import models
+from django.conf import settings
 from django.utils.timezone import make_aware
+
 
 log = logging.getLogger(__name__)
 
 
-class Image(models.Model):
+class Frame(models.Model):
     """A single image."""
-    basename = models.CharField('Name of file', max_length=50)
+    filename = models.CharField('Name of file', max_length=50, db_index=True)
     path = models.CharField('Path to file', max_length=100)
-    SITEID = models.CharField('Site of observation', max_length=5)
-    TELID = models.CharField('Telescope used for observation', max_length=5)
-    INSTRUME = models.CharField('Instrument used for observation', max_length=5)
-    IMAGETYP = models.CharField('Type of image', max_length=10)
-    RLEVEL = models.IntegerField('Reduction level', default=0)
-    DATE_OBS = models.DateTimeField('Time exposure started')
-    OBJECT = models.CharField('Name of Object', max_length=50, null=True, default=None)
+    SITEID = models.CharField('Site of observation', max_length=5, db_index=True)
+    TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
+    INSTRUME = models.CharField('Instrument used for observation', max_length=5, db_index=True)
+    IMAGETYP = models.CharField('Type of image', max_length=10, db_index=True)
+    RLEVEL = models.IntegerField('Reduction level', default=0, db_index=True)
+    DATE_OBS = models.DateTimeField('Time exposure started', db_index=True)
+    OBJECT = models.CharField('Name of Object', max_length=50, null=True, default=None, db_index=True)
     TEL_RA = models.FloatField('Telescope Right Ascension', null=True)
     TEL_DEC = models.FloatField('Telescope Declination', null=True)
-    vec_x = models.FloatField('Telescope orientation as vector, x component', null=True)
-    vec_y = models.FloatField('Telescope orientation as vector, y component', null=True)
-    vec_z = models.FloatField('Telescope orientation as vector, z component', null=True)
+    vec_x = models.FloatField('Telescope orientation as vector, x component', null=True, db_index=True)
+    vec_y = models.FloatField('Telescope orientation as vector, y component', null=True, db_index=True)
+    vec_z = models.FloatField('Telescope orientation as vector, z component', null=True, db_index=True)
     TEL_ALT = models.FloatField('Altitude of telescope at start of exposure', null=True, default=None)
     TEL_AZ = models.FloatField('Azimuth of telescope at start of exposure', null=True, default=None)
     TEL_FOCU = models.FloatField('Focus of telescope', null=True, default=None)
@@ -33,17 +35,19 @@ class Image(models.Model):
     MOONALT = models.FloatField('Elevation of moon above horizon in deg', null=True, default=None)
     MOONFRAC = models.FloatField('Illuminated fraction of moon surface', null=True, default=None)
     MOONDIST = models.FloatField('Ok-sky distance of object to Moon in deg', null=True, default=None)
-    EXPTIME = models.FloatField('Exposure time')
-    FILTER = models.CharField('Filter used', max_length=20, null=True, default=None)
-    binning = models.IntegerField('Binning of image', default=1)
+    EXPTIME = models.FloatField('Exposure time', db_index=True)
+    FILTER = models.CharField('Filter used', max_length=20, null=True, default=None, db_index=True)
+    XBINNING = models.IntegerField('Binning of image in X direction', default=1)
+    YBINNING = models.IntegerField('Binning of image in Y direction', default=1)
     XORGSUBF = models.IntegerField('X offset of image in unbinned pixels', default=0)
     YORGSUBF = models.IntegerField('Y offset of image in unbinned pixels', default=0)
     width = models.IntegerField('Width of image in binned pixels')
     height = models.IntegerField('Height of image in binned pixels')
-    DATAMEAN = models.FloatField('Mean data value')
+    DATAMEAN = models.FloatField('Mean data value', null=True, default=True)
+    related = models.ManyToManyField("self")
 
     def __str__(self):
-        return self.name
+        return self.basename
 
     def add_fits_header(self, header):
         """Add properties from FITS headers.
@@ -78,6 +82,9 @@ class Image(models.Model):
         self.width = header['NAXIS1']
         self.height = header['NAXIS2']
 
+        # add filename
+        self.filename = header['FNAME']
+
         # position vector
         if self.TEL_RA is not None and self.TEL_DEC is not None:
             ra = math.radians(self.TEL_RA)
@@ -101,3 +108,24 @@ class Image(models.Model):
 
             # set it
             setattr(self, keyword, header[keyword])
+
+    def get_info(self):
+        # init info and copy some fields
+        info = {k: getattr(self, k) for k in ['id', 'filename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
+                                              'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME', 'RLEVEL']}
+
+        # add basename
+        info['basename'] = self.filename[:self.filename.find('.')]
+
+        # add obstype
+        info['OBSTYPE'] = self.IMAGETYP
+
+        # add related frames
+        info['related_frames'] = [f.id for f in self.related.all()]
+
+        # add url
+        root = settings.ARCHIV_SETTINGS['HTTP_ROOT']
+        info['url'] = urllib.parse.urljoin(root, 'frames/%d/download/' % self.id)
+
+        # finished
+        return info
