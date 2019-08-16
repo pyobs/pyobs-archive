@@ -157,10 +157,11 @@ def frames_view(request):
         vec_y = math.cos(dec) * math.sin(ra)
         vec_z = math.sin(dec)
 
-        # query
-        data.annotate(dist=(vec_x-F('vec_x'))**2 + (vec_y-F('vec_y'))**2 + (vec_z-F('vec_z'))**2)\
-            .filter(dist__lte=100./3600.)
+        # calculate dist
+        data = data.annotate(dist=(vec_x-F('vec_x'))**2 + (vec_y-F('vec_y'))**2 + (vec_z-F('vec_z'))**2)
 
+        # apply filter (10' squared = 0.02778 (deg²)
+        data = data.filter(dist__lte=0.02778)
 
     # return them
     return JsonResponse({'total': len(data),

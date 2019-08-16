@@ -107,7 +107,8 @@ class Frame(models.Model):
             attr = keyword.replace('-', '_') if '-' in keyword else keyword
 
             # set it
-            setattr(self, keyword, header[keyword])
+            print('setting self.' + attr + ' as ' + str(header[keyword]))
+            setattr(self, attr, header[keyword])
 
     def get_info(self):
         # init info and copy some fields
