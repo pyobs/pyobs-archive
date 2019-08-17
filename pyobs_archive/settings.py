@@ -81,8 +81,11 @@ WSGI_APPLICATION = 'pyobs_archive.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'HOST': 'db',
+        'PORT': 5432,
     }
 }
 
@@ -127,7 +130,7 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 ARCHIV_SETTINGS = {
     'HTTP_ROOT': 'http://localhost:8000/',
-    'ARCHIVE_ROOT': '/opt/pyobs/data/',
+    'ARCHIVE_ROOT': '/data/',
     'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
     'FILENAME_FORMATTER': None,
 }
