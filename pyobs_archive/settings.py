@@ -134,3 +134,9 @@ ARCHIV_SETTINGS = {
     'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
     'FILENAME_FORMATTER': None,
 }
+
+# try to import a local_settings.py
+try:
+    from .local_settings import *
+except ImportError:
+    pass
