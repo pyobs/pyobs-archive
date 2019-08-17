@@ -1,0 +1,40 @@
+{
+  "name": "pyobs-archive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pyobs/pyobs-archive.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pyobs/pyobs-archive/issues"
+  },
+  "homepage": "https://github.com/pyobs/pyobs-archive#readme",
+  "devDependencies": {
+    "autoprefixer": "^7.2.5",
+    "css-loader": "^0.28.9",
+    "exports-loader": "^0.6.4",
+    "node-sass": "^4.7.2",
+    "postcss-loader": "^2.0.10",
+    "precss": "^3.0.0",
+    "sass-loader": "^6.0.6",
+    "style-loader": "^0.19.1",
+    "webpack": "^3.10.0",
+    "@fortawesome/fontawesome-free": "^5.10.1"
+  },
+  "dependencies": {
+    "bootstrap": "^4.0.0",
+    "bootstrap-table": "^1.15.4",
+    "jquery": "^3.2.1",
+    "jquery.typewatch": "^3.0.0",
+    "popper.js": "^1.12.9"
+  }
+}

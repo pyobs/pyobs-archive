@@ -1,5 +1,12 @@
-var Utils = {
+import 'bootstrap';
+import 'bootstrap-table/dist/bootstrap-table.js'
+import 'jquery.typewatch/jquery.typewatch.js'
 
+import 'bootstrap/scss/bootstrap.scss';
+import '@fortawesome/fontawesome-free/js/fontawesome'
+import '@fortawesome/fontawesome-free/js/solid'
+
+var Utils = {
   isNumeric: function isNumeric(number) {
     return !isNaN(parseFloat(number) && isFinite(number));
   },
