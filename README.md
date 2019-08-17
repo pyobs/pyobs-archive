@@ -36,6 +36,31 @@ that must be used when sending new images:
 
 Now you can open a browser at http://localhost:8000/ and log in to the homepage.
 
+Development environment
+-----------------------
+For development, it might be easier to not use Docker. In that case, create a 
+pyobs_archive/local_settings.py and override settings in the settings.py, like this:
+
+    import os
+    
+    # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
+    
+    ARCHIV_SETTINGS = {
+        'HTTP_ROOT': 'http://localhost:8000/',
+        'ARCHIVE_ROOT': '/opt/pyobs/data/',
+        'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
+        'FILENAME_FORMATTER': None,
+    }
+ 
+
 Used packages
 -------------
 The following packages are used in this project.
