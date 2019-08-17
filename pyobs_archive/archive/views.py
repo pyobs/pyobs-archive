@@ -166,7 +166,7 @@ def frames_view(request):
     # return them
     return JsonResponse({'total': len(data),
                          'totalNotFiltered': len(data),
-                         'rows': [frame.get_info() for frame in data]})
+                         'rows': [frame.get_info() for frame in data[offset:offset + limit]]})
 
 
 @api_view(['GET'])
