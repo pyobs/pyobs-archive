@@ -7,12 +7,29 @@ defined by [Las Cumbres Observatory](https://developers.lco.global/#archive).
 Quick start
 -----------
 
-Clone the repository:
+Create a docker-compose.yaml:
 
-    https://github.com/pyobs/pyobs-archive.git
-    cd pytel-archive
+    version: '3'
     
-Run the Docker containers:
+    services:
+      db:
+        image: postgres
+        volumes:
+          - pgdata:/var/lib/postgresql/data
+      web:
+        image: thusser/pyobs-archive
+        command: gunicorn --bind 0.0.0.0:8000 pyobs_archive.wsgi
+        ports:
+          - "8000:8000"
+        volumes:
+          - data:/opt/pyobs/data/
+        depends_on:
+          - db
+    volumes:
+      data:
+      pgdata:
+      
+Adapt ports and volumes to your needs. Run the containers:
 
     docker-compose up -d
     
