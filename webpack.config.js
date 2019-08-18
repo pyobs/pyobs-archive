@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
     entry: './src/main.js',
@@ -10,6 +11,14 @@ module.exports = {
         alias: {
             jquery: "jquery/src/jquery"
         }
+    },
+    plugins: [
+        // Ignore all locale files of moment.js
+        new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
+    ],
+    watchOptions: {
+        aggregateTimeout: 300,
+        poll: 1000
     },
     module: {
         rules: [

@@ -1,0 +1,13 @@
+.datetext {
+    vertical-align: bottom;
+    background: #fff;
+    cursor: pointer;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+#main {
+    margin-top: 20px;
+}

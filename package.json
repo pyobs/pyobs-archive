@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack"
+    "build": "webpack",
+    "watch": "webpack --watch"
   },
   "repository": {
     "type": "git",
@@ -33,8 +34,10 @@
   "dependencies": {
     "bootstrap": "^4.0.0",
     "bootstrap-table": "^1.15.4",
+    "daterangepicker": "^3.0.5",
     "jquery": "^3.2.1",
     "jquery.typewatch": "^3.0.0",
+    "moment": "^2.24.0",
     "popper.js": "^1.12.9"
   }
 }

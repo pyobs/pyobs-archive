@@ -146,6 +146,15 @@ def frames_view(request):
     f = request.GET.get('EXPTIME', '').strip()
     if f != '':
         data = data.filter(EXPTIME__gte=float(f))
+    f = request.GET.get('basename', '').strip()
+    if f != '':
+        data = data.filter(filename__icontains=f)
+
+    # date
+    start = request.GET.get('start', '').strip()
+    end = request.GET.get('end', '').strip()
+    if len(start) > 0 and len(end) > 0:
+        data=data.filter(DATE_OBS__range=(start, end))
 
     # position
     ra, dec = request.GET.get('RA', '').strip(), request.GET.get('DEC', '').strip()

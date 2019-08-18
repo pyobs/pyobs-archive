@@ -1,46 +1,52 @@
 import 'bootstrap';
 import 'bootstrap-table/dist/bootstrap-table.js'
 import 'jquery.typewatch/jquery.typewatch.js'
+import 'daterangepicker/daterangepicker.js'
 
 import 'bootstrap/scss/bootstrap.scss';
 import '@fortawesome/fontawesome-free/js/fontawesome'
 import '@fortawesome/fontawesome-free/js/solid'
+import 'daterangepicker/daterangepicker.css'
+import './main.css'
 
-var Utils = {
-  isNumeric: function isNumeric(number) {
-    return !isNaN(parseFloat(number) && isFinite(number));
-  },
+const moment = require('moment');
+moment().format();
 
-  sexagesimalRaToDecimal: function sexagesimalRaToDecimal(ra) {
-    // algorithm: ra_decimal = 15 * ( hh + mm/60 + ss/(60 * 60) )
-    /*                 (    hh     ):(     mm            ):  (   ss  ) */
-    var m = ra.match('^([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
-    if (m) {
-      var hh = parseInt(m[1], 10);
-      var mm = parseFloat(m[2]);
-      var ss = m[3] ? parseFloat(m[3]) : 0.0;
-      if (hh >= 0 && hh <= 23 && mm >= 0 && mm < 60 && ss >= 0 && ss < 60) {
-        ra = (15.0 * (hh + mm / 60.0 + ss / 3600.0)).toFixed(10);
-      }
+const Utils = {
+    isNumeric: function isNumeric(number) {
+        return !isNaN(parseFloat(number) && isFinite(number));
+    },
+
+    sexagesimalRaToDecimal: function sexagesimalRaToDecimal(ra) {
+        // algorithm: ra_decimal = 15 * ( hh + mm/60 + ss/(60 * 60) )
+        /*                 (    hh     ):(     mm            ):  (   ss  ) */
+        var m = ra.match('^([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
+        if (m) {
+            var hh = parseInt(m[1], 10);
+            var mm = parseFloat(m[2]);
+            var ss = m[3] ? parseFloat(m[3]) : 0.0;
+            if (hh >= 0 && hh <= 23 && mm >= 0 && mm < 60 && ss >= 0 && ss < 60) {
+                ra = (15.0 * (hh + mm / 60.0 + ss / 3600.0)).toFixed(10);
+            }
+        }
+        return ra;
+    },
+
+    sexagesimalDecToDecimal: function sexagesimalDecToDecimal(dec) {
+        // algorithm: dec_decimal = sign * ( dd + mm/60 + ss/(60 * 60) )
+        /*                  ( +/-   ) (    dd     ):(     mm            ): (   ss   ) */
+        var m = dec.match('^([+-])?([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
+        if (m) {
+            var sign = m[1] === '-' ? -1 : 1;
+            var dd = parseInt(m[2], 10);
+            var mm = parseFloat(m[3]);
+            var ss = m[4] ? parseFloat(m[4]) : 0.0;
+            if (dd >= 0 && dd <= 90 && mm >= 0 && mm <= 59 && ss >= 0 && ss <= 59) {
+                dec = (sign * (dd + mm / 60.0 + ss / 3600.0)).toFixed(10);
+            }
+        }
+        return dec;
     }
-    return ra;
-  },
-
-  sexagesimalDecToDecimal: function sexagesimalDecToDecimal(dec) {
-    // algorithm: dec_decimal = sign * ( dd + mm/60 + ss/(60 * 60) )
-    /*                  ( +/-   ) (    dd     ):(     mm            ): (   ss   ) */
-    var m = dec.match('^([+-])?([0-9]?[0-9]):([0-5]?[0-9][.0-9]*):?([.0-9]+)?$');
-    if (m) {
-      var sign = m[1] === '-' ? -1 : 1;
-      var dd = parseInt(m[2], 10);
-      var mm = parseFloat(m[3]);
-      var ss = m[4] ? parseFloat(m[4]) : 0.0;
-      if (dd >= 0 && dd <= 90 && mm >= 0 && mm <= 59 && ss >= 0 && ss <= 59) {
-        dec = (sign * (dd + mm / 60.0 + ss / 3600.0)).toFixed(10);
-      }
-    }
-    return dec;
-  }
 };
 
 $(function () {
@@ -100,6 +106,31 @@ $(function () {
         }]
     });
 
+    $('#daterange').daterangepicker({
+        'locale': {
+            'format': 'YYYY-MM-DD HH:mm'
+        },
+        'timePicker': true,
+        'timePicker24Hour': true,
+        'timePickerIncrement': 10,
+        'ranges': {
+            'This Year': [moment.utc().startOf('year'), moment.utc().endOf('year')],
+            'Last Year': [moment.utc().subtract(1, 'year').startOf('year'), moment.utc().subtract(1, 'year').endOf('year')],
+            'All Time': [moment('2000-01-01'), moment.utc().endOf('day').add(1, 'days')],
+            'Today': [moment.utc().startOf('day'), moment.utc().endOf('day')],
+            'Yesterday': [moment.utc().startOf('day').subtract(1, 'days'), moment.utc().endOf('day').subtract(1, 'days')],
+            'Last 7 Days': [moment.utc().startOf('day').subtract(6, 'days'), moment.utc().endOf('day')],
+            'Last 30 Days': [moment.utc().startOf('day').subtract(29, 'days'), moment.utc().endOf('day')]
+        }
+    }, setDateRange);
+
+    function setDateRange(start, end) {
+        $('#date-start').html(start.format('YYYY-MM-DD HH:mm'));
+        $('#date-end').html(end.format('YYYY-MM-DD HH:mm'));
+        refreshTable();
+    }
+    setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+
     function queryParams(params) {
         params.IMAGETYPE = $("#imagetype").val();
         params.SITE = $('#site').val();
@@ -111,6 +142,9 @@ $(function () {
         params.OBJECT = $('#object').val();
         params.RA = Utils.sexagesimalRaToDecimal($('#xloc').val());
         params.DEC = Utils.sexagesimalDecToDecimal($('#yloc').val());
+        params.basename = $('#basename').val();
+        params.start = $('#date-start').html();
+        params.end = $('#date-end').html();
         return params;
     }
 
