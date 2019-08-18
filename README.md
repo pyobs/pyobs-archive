@@ -22,11 +22,10 @@ Create a docker-compose.yaml:
         ports:
           - "8000:8000"
         volumes:
-          - data:/opt/pyobs/data/
+          - data:/data/
         depends_on:
           - db
     volumes:
-      data:
       pgdata:
       
 Adapt ports and volumes to your needs. Run the containers:
