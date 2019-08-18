@@ -42,7 +42,7 @@ Inside, run migrate:
     
 And create a superuser for yourself:
 
-    python manager.py createsuperuser
+    python manage.py createsuperuser
     
 Create another user for ingesting new images (in this case, we call it "pyobs") and create the token 
 that must be used when sending new images:

@@ -21,4 +21,5 @@ WORKDIR /pyobs-archive
 COPY requirements.txt /pyobs-archive/
 RUN pip install -r requirements.txt
 COPY . /pyobs-archive/
+COPY --from=builder /static static
 CMD gunicorn pyobs_archive.wsgi
