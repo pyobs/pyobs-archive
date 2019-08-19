@@ -1,4 +1,4 @@
-import 'bootstrap';
+import 'bootstrap/js/dist/alert';
 import 'bootstrap-table/dist/bootstrap-table.js'
 import 'jquery.typewatch/jquery.typewatch.js'
 import 'daterangepicker/daterangepicker.js'
