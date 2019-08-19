@@ -67,7 +67,7 @@ class FilenameFormatter:
         output = self.format
 
         # find all placeholders in format
-        placeholders = re.findall('\{[\w\d_-]+(?:\|[\w\d_-]+\:?(?:[\w\d_-]+)*)?\}', f)
+        placeholders = re.findall('\{[\w\d_-]+(?:\|[\w\d_-]+\:?(?:[\w\d_-]+)*)?\}', self.format)
         if len(placeholders) == 0:
             return self.format
 
