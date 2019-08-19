@@ -62,34 +62,22 @@ class FilenameFormatter:
         # make fmt a list
         if self.format is None:
             return None
-        if not isinstance(self.format, list):
-            self.format = [self.format]
 
-        # loop formats
-        for f in self.format:
-            try:
-                # find all placeholders in format
-                placeholders = re.findall('\{[\w\d_-]+(?:\|[\w\d_-]+\:?(?:[\w\d_-]+)*)?\}', f)
-                if len(placeholders) == 0:
-                    return f
+        # create output
+        output = f
 
-                # create output
-                output = f
+        # find all placeholders in format
+        placeholders = re.findall('\{[\w\d_-]+(?:\|[\w\d_-]+\:?(?:[\w\d_-]+)*)?\}', f)
+        if len(placeholders) == 0:
+            return f
 
-                # loop all placeholders
-                for ph in placeholders:
-                    # call method and replace
-                    output = output.replace(ph, self._format_placeholder(ph, hdr))
+        # loop all placeholders
+        for ph in placeholders:
+            # call method and replace
+            output = output.replace(ph, self._format_placeholder(ph, hdr))
 
-                # finished
-                return output
-
-            except KeyError:
-                # this format didn't work
-                pass
-
-        # still here?
-        raise KeyError('No valid format found.')
+        # finished
+        return output
 
     def _format_placeholder(self, placeholder: str, hdr: Header) -> str:
         """Format a given placeholder.

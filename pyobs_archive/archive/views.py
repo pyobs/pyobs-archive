@@ -46,63 +46,72 @@ def create_view(request):
 
     # loop all incoming files
     filenames = []
+    errors = []
     for key in request.FILES:
-        # open file
-        fits_file = fits.open(request.FILES[key])
+        try:
+            # open file
+            fits_file = fits.open(request.FILES[key])
 
-        # get path for archive
-        path = path_fmt(fits_file['SCI'].header)
+            # get path for archive
+            path = path_fmt(fits_file['SCI'].header)
 
-        # get filename for archive
-        if isinstance(filename_fmt, FilenameFormatter):
-            name = filename_fmt(fits_file['SCI'].header)
-        else:
-            tmp = request.FILES[key].name
-            name = os.path.basename(tmp[:tmp.find('.')])
-
-        # create new filename and set it in header
-        filename = name + '.fits.fz'
-        fits_file['SCI'].header['FNAME'] = filename
-
-        # store it
-        filenames.append(filename)
-
-        # find or create image
-        if Frame.objects.filter(filename=filename).exists():
-            img = Frame.objects.get(filename=filename)
-        else:
-            img = Frame()
-
-        # set headers
-        img.path = path
-        img.add_fits_header(fits_file['SCI'].header)
-
-        # write to database
-        img.save()
-
-        # loop all HDUs and convert to CompImageHDUs, if necessary/possible
-        hdu_list = fits.HDUList()
-        for i in fits_file:
-            if type(fits_file[i]) in [fits.hdu.image.ImageHDU, fits.hdu.image.PrimaryHDU]:
-                # convert
-                hdu_list.append(fits.CompImageHDU(fits_file[i].data, fits_file[i].header))
+            # get filename for archive
+            if isinstance(filename_fmt, FilenameFormatter):
+                name = filename_fmt(fits_file['SCI'].header)
             else:
-                # just copy
-                hdu_list.append(fits_file[i])
+                tmp = request.FILES[key].name
+                name = os.path.basename(tmp[:tmp.find('.')])
 
-        # create path if necessary
-        file_path = os.path.join(root, path)
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
+            # create new filename and set it in header
+            filename = name + '.fits.fz'
+            fits_file['SCI'].header['FNAME'] = filename
 
-        # write to disk
-        hdu_list.writeto(os.path.join(file_path, filename), overwrite=True)
+            # store it
+            filenames.append(filename)
 
-        # close file
-        fits_file.close()
-        log.info('Stored image as %s...', img.filename)
+            # find or create image
+            if Frame.objects.filter(filename=filename).exists():
+                img = Frame.objects.get(filename=filename)
+            else:
+                img = Frame()
 
-    return JsonResponse({'created': len(filenames), 'filenames': filenames})
+            # set headers
+            img.path = path
+            img.add_fits_header(fits_file['SCI'].header)
+
+            # write to database
+            img.save()
+
+            # loop all HDUs and convert to CompImageHDUs, if necessary/possible
+            hdu_list = fits.HDUList()
+            for i in fits_file:
+                if type(fits_file[i]) in [fits.hdu.image.ImageHDU, fits.hdu.image.PrimaryHDU]:
+                    # convert
+                    hdu_list.append(fits.CompImageHDU(fits_file[i].data, fits_file[i].header))
+                else:
+                    # just copy
+                    hdu_list.append(fits_file[i])
+
+            # create path if necessary
+            file_path = os.path.join(root, path)
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+
+            # write to disk
+            hdu_list.writeto(os.path.join(file_path, filename), overwrite=True)
+
+            # close file
+            fits_file.close()
+            log.info('Stored image as %s...', img.filename)
+
+        except Exception as e:
+            errors.append(str(e))
+
+    # response
+    res = {'created': len(filenames), 'filenames': filenames}
+    if errors:
+        res['errors'] = errors
+    return JsonResponse(res)
 
 
 @api_view(['GET'])
