@@ -9,11 +9,11 @@ log = logging.getLogger(__name__)
 
 
 class FilenameFormatter:
-    def __init__(self, fmt: Union[str, list], keys: dict = None):
+    def __init__(self, fmt: str, keys: dict = None):
         """Initializes a new filename formatter.
 
         Args:
-            fmt: Filename format or list of formats. If list is given, first valid one is used.
+            fmt: Filename format.
             keys: Additional keys to pass to the formatter.
         """
         self.format = fmt
@@ -64,12 +64,12 @@ class FilenameFormatter:
             return None
 
         # create output
-        output = f
+        output = self.format
 
         # find all placeholders in format
         placeholders = re.findall('\{[\w\d_-]+(?:\|[\w\d_-]+\:?(?:[\w\d_-]+)*)?\}', f)
         if len(placeholders) == 0:
-            return f
+            return self.format
 
         # loop all placeholders
         for ph in placeholders:
