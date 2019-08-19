@@ -15,7 +15,7 @@ class Frame(models.Model):
     """A single image."""
     filename = models.CharField('Name of file', max_length=50, db_index=True)
     path = models.CharField('Path to file', max_length=100)
-    SITEID = models.CharField('Site of observation', max_length=5, db_index=True)
+    SITEID = models.CharField('Site of observation', max_length=10, db_index=True)
     TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
     INSTRUME = models.CharField('Instrument used for observation', max_length=5, db_index=True)
     IMAGETYP = models.CharField('Type of image', max_length=10, db_index=True)
