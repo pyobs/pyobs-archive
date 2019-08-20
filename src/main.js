@@ -2,6 +2,7 @@ import 'bootstrap/js/dist/alert';
 import 'bootstrap-table/dist/bootstrap-table.js'
 import 'jquery.typewatch/jquery.typewatch.js'
 import 'daterangepicker/daterangepicker.js'
+import 'jquery-file-download/index'
 
 import 'bootstrap/scss/bootstrap.scss';
 import '@fortawesome/fontawesome-free/js/fontawesome'

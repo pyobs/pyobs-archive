@@ -3,3 +3,4 @@ django
 djangorestframework
 astropy
 gunicorn
+psycopg2-binary
