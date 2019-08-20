@@ -76,7 +76,7 @@ $(function () {
         showColumns: true,
         queryParams: queryParams,
         toolbar: '#toolbar',
-        detailView: true,
+        //detailView: true,
         showExport: true,
         clickToSelect: true,
         detailFormatter: detailFormatter,
@@ -136,6 +136,7 @@ $(function () {
         $('#date-end').html(end.format('YYYY-MM-DD HH:mm'));
         refreshTable();
     }
+
     setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
 
     function queryParams(params) {
@@ -155,8 +156,39 @@ $(function () {
         return params;
     }
 
-    function detailFormatter(index, row) {
-        return 'Test';
+    function detailFormatter(index, row, $detail) {
+        $.getJSON('frames/' + row.id + '/related/', function (data) {
+            console.log(data);
+            // build HTML
+            let table = $detail.html(`
+              <div class="row">
+                <div class="col-md-8">
+                  <h4>Calibration and Catalog Frames</h4>
+                  <table class="table table-sm"></table>
+                </div>
+              </div>
+            `).find('.table');
+
+            // get table and create it
+            table.bootstrapTable({
+                columns: [
+                    {
+                        checkbox: true
+                    }, {
+                        field: 'basename',
+                        title: 'Name',
+                        sortable: true
+                    }, {
+                        field: 'OBSTYPE',
+                        title: 'Type',
+                        sortable: true,
+                    }
+                ],
+                data: data,
+                clickToSelect: true,
+                checkBoxHeader: false
+            });
+        });
     }
 
     function setOptions(select, options) {
