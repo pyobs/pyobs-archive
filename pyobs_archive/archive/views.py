@@ -1,8 +1,11 @@
 import os
 import logging
+import shutil
+import subprocess
 import zipfile
 import datetime
 import math
+import io
 
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
@@ -66,9 +69,6 @@ def create_view(request):
             filename = name + '.fits.fz'
             fits_file['SCI'].header['FNAME'] = filename
 
-            # store it
-            filenames.append(filename)
-
             # find or create image
             if Frame.objects.filter(filename=filename).exists():
                 img = Frame.objects.get(filename=filename)
@@ -82,29 +82,34 @@ def create_view(request):
             # write to database
             img.save()
 
-            # loop all HDUs and convert to CompImageHDUs, if necessary/possible
-            hdu_list = fits.HDUList()
-            for i in fits_file:
-                if type(fits_file[i]) in [fits.hdu.image.ImageHDU, fits.hdu.image.PrimaryHDU]:
-                    # convert
-                    hdu_list.append(fits.CompImageHDU(fits_file[i].data, fits_file[i].header))
-                else:
-                    # just copy
-                    hdu_list.append(fits_file[i])
-
             # create path if necessary
             file_path = os.path.join(root, path)
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
 
-            # write to disk
-            hdu_list.writeto(os.path.join(file_path, filename), overwrite=True)
+            # write FITS file to byte stream and close
+            with io.BytesIO() as bio:
+                fits_file.writeto(bio)
+                fits_file.close()
 
-            # close file
-            fits_file.close()
+                # pipe data into fpack
+                log.info('Fpacking file...')
+                proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
+                                        stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        stdout=open(os.path.join(file_path, filename), 'wb'))
+                proc.communicate(bytes(bio.getbuffer()))
+
+                # all good store it
+                if proc.returncode == 0:
+                    filenames.append(filename)
+                else:
+                    raise ValueError('Could not fpack file %s.' % filename)
+
+            # finished
             log.info('Stored image as %s...', img.filename)
 
         except Exception as e:
+            log.exception('Could not add image.')
             errors.append(str(e))
 
     # response

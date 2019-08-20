@@ -1,4 +1,4 @@
-FROM debian:9.8 as builder
+FROM debian:10 as builder
 ENV NODE_ENV production
 RUN apt-get update \
   && apt-get install -y curl \
@@ -16,6 +16,9 @@ RUN npm install \
 
 FROM python:3.7-slim
 ENV PYTHONUNBUFFERED 1
+RUN apt-get update \
+  && apt-get install -y libcfitsio-bin \
+  && rm -rf /var/lib/apt/lists/*
 RUN mkdir /pyobs-archive
 WORKDIR /pyobs-archive
 COPY requirements.txt /pyobs-archive/
