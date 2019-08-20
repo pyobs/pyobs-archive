@@ -1,4 +1,5 @@
 import 'bootstrap/js/dist/alert';
+import 'bootstrap/js/dist/dropdown';
 import 'bootstrap-table/dist/bootstrap-table.js'
 import 'jquery.typewatch/jquery.typewatch.js'
 import 'daterangepicker/daterangepicker.js'
@@ -60,12 +61,13 @@ $(function () {
     $('#table').bootstrapTable({
         url: '/frames/',
         ajax: function ajax(params) {
-            $.ajax(queryParams(params)).fail(function () {
+            $.ajax(params).fail(function () {
                 // show error
             });
         },
         pagination: true,
         sidePagination: 'server',
+        pageSize: 10,
         pageList: [10, 25, 50, 100, 250, 500],
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
@@ -74,6 +76,10 @@ $(function () {
         showColumns: true,
         queryParams: queryParams,
         toolbar: '#toolbar',
+        detailView: true,
+        showExport: true,
+        clickToSelect: true,
+        detailFormatter: detailFormatter,
         columns: [{
             checkbox: true
         }, {
@@ -147,6 +153,10 @@ $(function () {
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
         return params;
+    }
+
+    function detailFormatter(index, row) {
+        return 'Test';
     }
 
     function setOptions(select, options) {
