@@ -149,7 +149,7 @@ LOGGING = {
 ARCHIV_SETTINGS = {
     'HTTP_ROOT': 'http://localhost:8000/',
     'ARCHIVE_ROOT': '/data/',
-    'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
+    'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/{DAY-OBS}/',
     'FILENAME_FORMATTER': None,
 }
 
