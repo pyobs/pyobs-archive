@@ -145,11 +145,10 @@ LOGGING = {
 }
 
 # App settings
-
 ARCHIV_SETTINGS = {
     'HTTP_ROOT': 'http://localhost:8000/',
     'ARCHIVE_ROOT': '/data/',
-    'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/{DAY-OBS}/',
+    'PATH_FORMATTER': '{SITEID}/{DAY-OBS}/',
     'FILENAME_FORMATTER': None,
 }
 
