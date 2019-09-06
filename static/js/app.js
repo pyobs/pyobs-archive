@@ -38,6 +38,9 @@ const Utils = {
 };
 
 $(function () {
+    // Animate loader off screen
+    $(".loading").fadeOut("slow");
+
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
         if (localStorage.getItem('token')) {
             jqXHR.setRequestHeader('Authorization', 'Token ' + localStorage.getItem('token'));
