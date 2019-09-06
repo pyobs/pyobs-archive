@@ -3,8 +3,14 @@
 <html>
 <head>
     <title>pyobs archive</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static "img/favicon-32x32.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static "img/favicon-16x16.png" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/bootstrap.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/bootstrap-table.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/daterangepicker.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/fontawesome.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/solid.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/styles.css" %}">
 </head>
 <body>
 
@@ -49,5 +55,11 @@
     {% endblock %}
 </div>
 </body>
-<script src="{% static "bundle.js" %}"></script>
+<script src="{% static "js/vendor/jquery.min.js" %}"></script>
+<script src="{% static "js/vendor/moment.min.js" %}"></script>
+<script src="{% static "js/vendor/bootstrap-table.min.js" %}"></script>
+<script src="{% static "js/vendor/daterangepicker.min.js" %}"></script>
+<script src="{% static "js/vendor/jquery.typewatch.js" %}"></script>
+<script src="{% static "js/vendor/jquery.fileDownload.js" %}"></script>
+<script src="{% static "js/app.js" %}"></script>
 </html>
