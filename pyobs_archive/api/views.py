@@ -1,6 +1,5 @@
 import os
 import logging
-import shutil
 import subprocess
 import zipfile
 import datetime
@@ -8,8 +7,6 @@ import math
 import io
 
 from django.http import HttpResponse, JsonResponse
-from django.template import loader
-from django.views.decorators.csrf import ensure_csrf_cookie
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
@@ -17,17 +14,11 @@ from rest_framework.decorators import permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from pyobs_archive.archive.models import Frame
-from pyobs_archive.archive.utils import FilenameFormatter
+from pyobs_archive.api.models import Frame
+from pyobs_archive.api.utils import FilenameFormatter
 
 
 log = logging.getLogger(__name__)
-
-
-@ensure_csrf_cookie
-def index(request):
-    template = loader.get_template('archive/index.html')
-    return HttpResponse(template.render({}, request))
 
 
 @api_view(['POST'])

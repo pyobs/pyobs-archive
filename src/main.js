@@ -59,7 +59,7 @@ $(function () {
     });
 
     $('#table').bootstrapTable({
-        url: '/frames/',
+        url: '/api/frames/',
         ajax: function ajax(params) {
             $.ajax(params).fail(function () {
                 // show error
@@ -266,7 +266,7 @@ $(function () {
     }
 
     // get options
-    $.getJSON('/frames/aggregate/', function (data) {
+    $.getJSON('/api/frames/aggregate/', function (data) {
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#site'), data.sites);
         setOptions($('#telescope'), data.telescopes);
@@ -283,7 +283,7 @@ $(function () {
             frames.push(selections[i].id);
         }
 
-        $.fileDownload('/frames/zip/', {
+        $.fileDownload('/api/frames/zip/', {
             httpMethod: 'POST',
             data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
             headers: {}
