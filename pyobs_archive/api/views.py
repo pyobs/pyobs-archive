@@ -31,7 +31,7 @@ def create_view(request):
     for key in request.FILES:
         try:
             # ingest frame
-            name = Frame.ingest(request.FILES[key], request.FILES[key].name)
+            name = Frame.ingest(request.FILES[key])
             filenames.append(name)
         except Exception as e:
             log.exception('Could not add image.')
