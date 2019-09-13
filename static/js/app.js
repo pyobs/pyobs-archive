@@ -56,7 +56,7 @@ $(function () {
         },
         pagination: true,
         sidePagination: 'server',
-        pageSize: 10,
+        pageSize: 25,
         pageList: [10, 25, 50, 100, 250, 500],
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
