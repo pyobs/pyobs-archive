@@ -69,9 +69,8 @@ class Frame(models.Model):
 
         # binning
         if 'XBINNING' in header and 'YBINNING' in header:
-            self.binning = header['XBINNING']
-            if header['XBINNING'] != header['YBINNING']:
-                log.warning('Binning in X and Y differ, using one for X.')
+            self.XBINNING = header['XBINNING']
+            self.YBINNING = header['YBINNING']
         else:
             log.warning('Missing or invalid XBINNING and/or YBINNING in FITS header.')
 
