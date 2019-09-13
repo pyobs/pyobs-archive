@@ -37,23 +37,29 @@ const Utils = {
     }
 };
 
+function setRequestHeader(xhr) {
+    if (localStorage.getItem('token')) {
+        xhr.setRequestHeader('Authorization', 'Token ' + localStorage.getItem('token'));
+    }
+}
+
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
 
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
-        if (localStorage.getItem('token')) {
-            jqXHR.setRequestHeader('Authorization', 'Token ' + localStorage.getItem('token'));
-        }
+        setRequestHeader(jqXHR);
     });
 
     $('#table').bootstrapTable({
         url: '/api/frames/',
-        ajax: function ajax(params) {
-            $.ajax(params).fail(function () {
-                // show error
-            });
+        ajaxOptions: {
+            beforeSend: function (xhr) {
+                setRequestHeader(xhr);
+            }
         },
+        totalField: 'count',
+        dataField: 'results',
         pagination: true,
         sidePagination: 'server',
         pageSize: 10,

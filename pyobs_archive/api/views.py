@@ -115,8 +115,8 @@ def create_view(request):
 @permission_classes([IsAuthenticated])
 def frames_view(request):
     # get offset and limit
-    offset = int(request.GET.get('offset', default=0))
-    limit = int(request.GET.get('limit', default=10))
+    offset = request.GET.get('offset', default=None)
+    limit = request.GET.get('limit', default=None)
 
     # sort
     sort = request.GET.get('sort', default='DATE_OBS')
@@ -157,9 +157,11 @@ def frames_view(request):
 
     # date
     start = request.GET.get('start', '').strip()
+    if len(start) > 0:
+        data = data.filter(DATE_OBS__gte=start)
     end = request.GET.get('end', '').strip()
-    if len(start) > 0 and len(end) > 0:
-        data=data.filter(DATE_OBS__range=(start, end))
+    if len(end) > 0:
+        data = data.filter(DATE_OBS__lte=end)
 
     # position
     ra, dec = request.GET.get('RA', '').strip(), request.GET.get('DEC', '').strip()
@@ -177,10 +179,15 @@ def frames_view(request):
         # apply filter (10' squared = 0.02778 (deg²)
         data = data.filter(dist__lte=0.02778)
 
+    # get results
+    if offset is None or limit is None:
+        results = [frame.get_info() for frame in data]
+    else:
+        results = [frame.get_info() for frame in data[int(offset):int(offset) + int(limit)]]
+
     # return them
-    return JsonResponse({'total': len(data),
-                         'totalNotFiltered': len(data),
-                         'rows': [frame.get_info() for frame in data[offset:offset + limit]]})
+    return JsonResponse({'count': len(data),
+                         'results': results})
 
 
 @api_view(['GET'])
