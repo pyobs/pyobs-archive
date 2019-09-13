@@ -1,12 +1,17 @@
 import math
 import logging
+import subprocess
 import urllib.parse
+import os
+import io
+from astropy.io import fits
 from astropy.time import Time
 
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import make_aware
 
+from pyobs_archive.api.utils import FilenameFormatter
 
 log = logging.getLogger(__name__)
 
@@ -64,9 +69,8 @@ class Frame(models.Model):
 
         # binning
         if 'XBINNING' in header and 'YBINNING' in header:
-            self.binning = header['XBINNING']
-            if header['XBINNING'] != header['YBINNING']:
-                log.warning('Binning in X and Y differ, using one for X.')
+            self.XBINNING = header['XBINNING']
+            self.YBINNING = header['YBINNING']
         else:
             log.warning('Missing or invalid XBINNING and/or YBINNING in FITS header.')
 
@@ -120,6 +124,14 @@ class Frame(models.Model):
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
 
+        # add binning
+        info['binning'] = '%dx%d' % (self.XBINNING, self.YBINNING)
+
+        # remove OBJECT and FILTER for BIAS and DARKs
+        if self.IMAGETYP in ['bias', 'dark']:
+            info['OBJECT'] = None
+            info['FILTER'] = None
+
         # add related frames
         info['related_frames'] = [f.id for f in self.related.all()]
 
@@ -129,3 +141,72 @@ class Frame(models.Model):
 
         # finished
         return info
+
+    @staticmethod
+    def ingest(filename):
+        # create path and filename formatter
+        if 'PATH_FORMATTER' in settings.ARCHIV_SETTINGS and settings.ARCHIV_SETTINGS['PATH_FORMATTER'] is not None:
+            path_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['PATH_FORMATTER'])
+        else:
+            raise ValueError('No path formatter configured.')
+        filename_fmt = None
+        if 'FILENAME_FORMATTER' in settings.ARCHIV_SETTINGS and \
+                settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'] is not None:
+            filename_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'])
+
+        # get archive root
+        root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+
+        # open file
+        fits_file = fits.open(filename)
+
+        # get path for archive
+        path = path_fmt(fits_file['SCI'].header)
+
+        # get filename for archive
+        if isinstance(filename_fmt, FilenameFormatter):
+            name = filename_fmt(fits_file['SCI'].header)
+        else:
+            tmp = fits_file['SCI'].header['FNAME']
+            name = os.path.basename(tmp[:tmp.find('.')])
+
+        # create new filename and set it in header
+        out_filename = name + '.fits.fz'
+        fits_file['SCI'].header['FNAME'] = out_filename
+
+        # find or create image
+        if Frame.objects.filter(filename=out_filename).exists():
+            img = Frame.objects.get(filename=out_filename)
+        else:
+            img = Frame()
+
+        # set headers
+        img.path = path
+        img.add_fits_header(fits_file['SCI'].header)
+
+        # write to database
+        img.save()
+
+        # create path if necessary
+        file_path = os.path.join(root, path)
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        # write FITS file to byte stream and close
+        with io.BytesIO() as bio:
+            fits_file.writeto(bio)
+            fits_file.close()
+
+            # pipe data into fpack
+            log.info('Fpacking file...')
+            proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
+                                    stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    stdout=open(os.path.join(file_path, out_filename), 'wb'))
+            proc.communicate(bytes(bio.getbuffer()))
+
+            # all good store it
+            if proc.returncode == 0:
+                log.info('Stored image as %s...', img.filename)
+                return out_filename
+            else:
+                raise ValueError('Could not fpack file %s.' % filename)

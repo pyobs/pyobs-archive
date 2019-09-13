@@ -62,7 +62,7 @@ $(function () {
         dataField: 'results',
         pagination: true,
         sidePagination: 'server',
-        pageSize: 10,
+        pageSize: 25,
         pageList: [10, 25, 50, 100, 250, 500],
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
@@ -92,6 +92,10 @@ $(function () {
         }, {
             field: 'OBSTYPE',
             title: 'Type',
+            sortable: true,
+        }, {
+            field: 'binning',
+            title: 'Bin',
             sortable: true,
         }, {
             field: 'FILTER',
@@ -136,6 +140,7 @@ $(function () {
 
     function queryParams(params) {
         params.IMAGETYPE = $("#imagetype").val();
+        params.binning = $('#binning').val();
         params.SITE = $('#site').val();
         params.TELESCOPE = $('#telescope').val();
         params.INSTRUMENT = $('#instrument').val();
@@ -263,6 +268,7 @@ $(function () {
     // get options
     $.getJSON('/api/frames/aggregate/', function (data) {
         setOptions($('#imagetype'), data.imagetypes);
+        setOptions($('#binning'), data.binnings);
         setOptions($('#site'), data.sites);
         setOptions($('#telescope'), data.telescopes);
         setOptions($('#instrument'), data.instruments);

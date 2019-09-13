@@ -25,80 +25,14 @@ log = logging.getLogger(__name__)
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAdminUser])
 def create_view(request):
-    # create path and filename formatter
-    if 'PATH_FORMATTER' in settings.ARCHIV_SETTINGS and settings.ARCHIV_SETTINGS['PATH_FORMATTER'] is not None:
-        path_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['PATH_FORMATTER'])
-    else:
-        return JsonResponse({'error': 'No path formatter configured.'}, status=500)
-    filename_fmt = None
-    if 'FILENAME_FORMATTER' in settings.ARCHIV_SETTINGS and \
-            settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'] is not None:
-        filename_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'])
-
-    # get archive root
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
-
     # loop all incoming files
     filenames = []
     errors = []
     for key in request.FILES:
         try:
-            # open file
-            fits_file = fits.open(request.FILES[key])
-
-            # get path for archive
-            path = path_fmt(fits_file['SCI'].header)
-
-            # get filename for archive
-            if isinstance(filename_fmt, FilenameFormatter):
-                name = filename_fmt(fits_file['SCI'].header)
-            else:
-                tmp = request.FILES[key].name
-                name = os.path.basename(tmp[:tmp.find('.')])
-
-            # create new filename and set it in header
-            filename = name + '.fits.fz'
-            fits_file['SCI'].header['FNAME'] = filename
-
-            # find or create image
-            if Frame.objects.filter(filename=filename).exists():
-                img = Frame.objects.get(filename=filename)
-            else:
-                img = Frame()
-
-            # set headers
-            img.path = path
-            img.add_fits_header(fits_file['SCI'].header)
-
-            # write to database
-            img.save()
-
-            # create path if necessary
-            file_path = os.path.join(root, path)
-            if not os.path.exists(file_path):
-                os.makedirs(file_path)
-
-            # write FITS file to byte stream and close
-            with io.BytesIO() as bio:
-                fits_file.writeto(bio)
-                fits_file.close()
-
-                # pipe data into fpack
-                log.info('Fpacking file...')
-                proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
-                                        stdin=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        stdout=open(os.path.join(file_path, filename), 'wb'))
-                proc.communicate(bytes(bio.getbuffer()))
-
-                # all good store it
-                if proc.returncode == 0:
-                    filenames.append(filename)
-                else:
-                    raise ValueError('Could not fpack file %s.' % filename)
-
-            # finished
-            log.info('Stored image as %s...', img.filename)
-
+            # ingest frame
+            name = Frame.ingest(request.FILES[key])
+            filenames.append(name)
         except Exception as e:
             log.exception('Could not add image.')
             errors.append(str(e))
@@ -106,7 +40,7 @@ def create_view(request):
     # response
     res = {'created': len(filenames), 'filenames': filenames}
     if errors:
-        res['errors'] = errors
+        res['errors'] = list(set(errors))
     return JsonResponse(res)
 
 
@@ -130,6 +64,10 @@ def frames_view(request):
     f = request.GET.get('IMAGETYPE', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(IMAGETYP=f)
+    f = request.GET.get('binning', 'ALL')
+    if f not in ['', 'ALL']:
+        b = f.split('x')
+        data = data.filter(XBINNING=float(b[0]), YBINNING=float(b[1]))
     f = request.GET.get('SITE', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(SITEID=f)
@@ -200,14 +138,16 @@ def aggregate_view(request):
     telescopes = list(Frame.objects.all().values_list('TELID', flat=True).distinct())
     instruments = list(Frame.objects.all().values_list('INSTRUME', flat=True).distinct())
     filters = list(Frame.objects.all().values_list('FILTER', flat=True).distinct())
+    binning = list(Frame.objects.all().values_list('XBINNING', 'YBINNING').distinct())
 
     # return all
     return JsonResponse({
-        'imagetypes': image_types,
-        'sites': sites,
-        'telescopes': telescopes,
-        'instruments': instruments,
-        'filters': filters
+        'imagetypes': sorted(image_types),
+        'sites': sorted(sites),
+        'telescopes': sorted(telescopes),
+        'instruments': sorted(instruments),
+        'filters': sorted(filters),
+        'binnings': sorted(['%dx%d' % b for b in binning])
     })
 
 
