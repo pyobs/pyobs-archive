@@ -124,6 +124,9 @@ class Frame(models.Model):
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
 
+        # add binning
+        info['binning'] = '%dx%d' % (self.XBINNING, self.YBINNING)
+
         # add related frames
         info['related_frames'] = [f.id for f in self.related.all()]
 

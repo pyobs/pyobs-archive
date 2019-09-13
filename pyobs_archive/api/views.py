@@ -64,6 +64,10 @@ def frames_view(request):
     f = request.GET.get('IMAGETYPE', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(IMAGETYP=f)
+    f = request.GET.get('binning', 'ALL')
+    if f not in ['', 'ALL']:
+        b = f.split('x')
+        data = data.filter(XBINNING=float(b[0]), YBINNING=float(b[1]))
     f = request.GET.get('SITE', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(SITEID=f)
