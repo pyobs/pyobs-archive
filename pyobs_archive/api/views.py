@@ -127,14 +127,16 @@ def aggregate_view(request):
     telescopes = list(Frame.objects.all().values_list('TELID', flat=True).distinct())
     instruments = list(Frame.objects.all().values_list('INSTRUME', flat=True).distinct())
     filters = list(Frame.objects.all().values_list('FILTER', flat=True).distinct())
+    binning = list(Frame.objects.all().values_list('XBINNING', 'YBINNING').distinct())
 
     # return all
     return JsonResponse({
-        'imagetypes': image_types,
-        'sites': sites,
-        'telescopes': telescopes,
-        'instruments': instruments,
-        'filters': filters
+        'imagetypes': sorted(image_types),
+        'sites': sorted(sites),
+        'telescopes': sorted(telescopes),
+        'instruments': sorted(instruments),
+        'filters': sorted(filters),
+        'binnings': sorted(['%dx%d' % b for b in binning])
     })
 
 
