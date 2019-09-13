@@ -127,6 +127,11 @@ class Frame(models.Model):
         # add binning
         info['binning'] = '%dx%d' % (self.XBINNING, self.YBINNING)
 
+        # remove OBJECT and FILTER for BIAS and DARKs
+        if self.IMAGETYP in ['bias', 'dark']:
+            info['OBJECT'] = None
+            info['FILTER'] = None
+
         # add related frames
         info['related_frames'] = [f.id for f in self.related.all()]
 
