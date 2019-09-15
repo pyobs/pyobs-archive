@@ -1,12 +1,11 @@
 import os
 import logging
-import subprocess
 import zipfile
 import datetime
 import math
-import io
+import zipstream
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
@@ -216,17 +215,14 @@ class PostAuthentication(TokenAuthentication):
 @authentication_classes([PostAuthentication])
 @permission_classes([IsAuthenticated])
 def zip_view(request):
-    # create response
-    response = HttpResponse(content_type='application/zip')
-
-    # create zip file
-    zip_file = zipfile.ZipFile(response, 'w')
-
     # get archive root
     root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
 
     # get name for archive
     archive_name = 'pyobsdata-' + datetime.datetime.now().strftime('%Y%m%d')
+
+    # create zip file
+    zip_file = zipstream.ZipFile()
 
     # add files
     for frame_id in request.POST.getlist('frame_ids[]'):
@@ -239,7 +235,8 @@ def zip_view(request):
         # add file to zip
         zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))
 
-    # return response
+    # create and return response
+    response = StreamingHttpResponse(zip_file, content_type='application/zip')
     response.set_cookie('fileDownload', 'true', path='/')
     response['Content-Disposition'] = 'attachment; filename={}'.format(archive_name + '.zip')
     return response

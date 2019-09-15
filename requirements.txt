@@ -4,3 +4,4 @@ djangorestframework
 astropy
 gunicorn
 psycopg2-binary
+zipstream==1.1.4
