@@ -43,22 +43,7 @@ def create_view(request):
     return JsonResponse(res)
 
 
-@api_view(['GET'])
-@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
-@permission_classes([IsAuthenticated])
-def frames_view(request):
-    # get offset and limit
-    offset = request.GET.get('offset', default=None)
-    limit = request.GET.get('limit', default=None)
-
-    # sort
-    sort = request.GET.get('sort', default='DATE_OBS')
-    order = request.GET.get('order', default='asc')
-    sort_string = ('' if order == 'asc' else '-') + sort
-
-    # get response
-    data = Frame.objects.order_by(sort_string)
-
+def filter_frames(data, request):
     # filter
     f = request.GET.get('IMAGETYPE', 'ALL')
     if f not in ['', 'ALL']:
@@ -111,10 +96,33 @@ def frames_view(request):
         vec_z = math.sin(dec)
 
         # calculate dist
-        data = data.annotate(dist=(vec_x-F('vec_x'))**2 + (vec_y-F('vec_y'))**2 + (vec_z-F('vec_z'))**2)
+        data = data.annotate(dist=(vec_x - F('vec_x')) ** 2 + (vec_y - F('vec_y')) ** 2 + (vec_z - F('vec_z')) ** 2)
 
         # apply filter (10' squared = 0.02778 (deg²)
         data = data.filter(dist__lte=0.02778)
+
+    # finished
+    return data
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def frames_view(request):
+    # get offset and limit
+    offset = request.GET.get('offset', default=None)
+    limit = request.GET.get('limit', default=None)
+
+    # sort
+    sort = request.GET.get('sort', default='DATE_OBS')
+    order = request.GET.get('order', default='asc')
+    sort_string = ('' if order == 'asc' else '-') + sort
+
+    # get response
+    data = Frame.objects.order_by(sort_string)
+
+    # filter
+    data = filter_frames(data, request)
 
     # get results
     if offset is None or limit is None:
@@ -131,13 +139,19 @@ def frames_view(request):
 @authentication_classes([TokenAuthentication, SessionAuthentication, BasicAuthentication])
 @permission_classes([IsAuthenticated])
 def aggregate_view(request):
+    # get response
+    data = Frame.objects
+
+    # filter
+    data = filter_frames(data, request).all()
+
     # get all options
-    image_types = list(Frame.objects.all().values_list('IMAGETYP', flat=True).distinct())
-    sites = list(Frame.objects.all().values_list('SITEID', flat=True).distinct())
-    telescopes = list(Frame.objects.all().values_list('TELID', flat=True).distinct())
-    instruments = list(Frame.objects.all().values_list('INSTRUME', flat=True).distinct())
-    filters = list(Frame.objects.all().values_list('FILTER', flat=True).distinct())
-    binning = list(Frame.objects.all().values_list('XBINNING', 'YBINNING').distinct())
+    image_types = list(data.values_list('IMAGETYP', flat=True).distinct())
+    sites = list(data.values_list('SITEID', flat=True).distinct())
+    telescopes = list(data.values_list('TELID', flat=True).distinct())
+    instruments = list(data.values_list('INSTRUME', flat=True).distinct())
+    filters = list(data.values_list('FILTER', flat=True).distinct())
+    binning = list(data.values_list('XBINNING', 'YBINNING').distinct())
 
     # return all
     return JsonResponse({
