@@ -60,3 +60,7 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
 	z-index: 9999;
 	background: url(/static/img/ajax-loader.gif) center no-repeat #fff;
 }
+
+table {
+    font-size: small;
+}
