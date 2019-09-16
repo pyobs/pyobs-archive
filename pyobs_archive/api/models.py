@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class Frame(models.Model):
     """A single image."""
-    filename = models.CharField('Name of file', max_length=50, db_index=True)
+    basename = models.CharField('Name of file', max_length=50, db_index=True)
     path = models.CharField('Path to file', max_length=100)
     SITEID = models.CharField('Site of observation', max_length=10, db_index=True)
     TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
@@ -87,7 +87,7 @@ class Frame(models.Model):
         self.height = header['NAXIS2']
 
         # add filename
-        self.filename = header['FNAME']
+        self.basename = header['FNAME']
 
         # position vector
         if self.TEL_RA is not None and self.TEL_DEC is not None:
@@ -119,7 +119,7 @@ class Frame(models.Model):
                                               'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME', 'RLEVEL']}
 
         # add basename
-        info['basename'] = self.filename[:self.filename.find('.')]
+        info['basename'] = self.basename[:self.basename.find('.')]
 
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
@@ -172,13 +172,13 @@ class Frame(models.Model):
 
         # create new filename and set it in header
         out_filename = name + '.fits.fz'
-        fits_file['SCI'].header['FNAME'] = out_filename
+        fits_file['SCI'].header['FNAME'] = name
 
         # find or create image
-        if Frame.objects.filter(filename=out_filename).exists():
-            img = Frame.objects.get(filename=out_filename)
+        if Frame.objects.filter(basename=name).exists():
+            img = Frame.objects.get(basename=name)
         else:
-            img = Frame()
+            img = Frame(basename=name)
 
         # set headers
         img.path = path
@@ -206,7 +206,7 @@ class Frame(models.Model):
 
             # all good store it
             if proc.returncode == 0:
-                log.info('Stored image as %s...', img.filename)
-                return out_filename
+                log.info('Stored image as %s...', img.basename)
+                return img.basename
             else:
                 raise ValueError('Could not fpack file %s.' % filename)
