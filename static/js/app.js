@@ -273,7 +273,7 @@ $(function () {
         setOptions($('#telescope'), data.telescopes);
         setOptions($('#instrument'), data.instruments);
         setOptions($('#filter'), data.filters);
-        setOptions($('#rlevel'), ['raw', 'reduced']);
+        setOptions($('#rlevel'), ['0', '1']);
     });
 
     function zipDownload() {

@@ -66,7 +66,7 @@ def filter_frames(data, request):
         data = data.filter(FILTER=f)
     f = request.GET.get('RLEVEL', 'ALL')
     if f not in ['', 'ALL']:
-        data = data.filter(RLEVEL=(0 if f == 'raw' else 1))
+        data = data.filter(RLEVEL=int(f))
     f = request.GET.get('OBJECT', '').strip()
     if f != '':
         data = data.filter(OBJECT__icontains=f)
@@ -180,13 +180,13 @@ def download_view(request, frame_id):
     # get frame and filename
     frame = Frame.objects.get(id=frame_id)
     root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
-    filename = os.path.join(root, frame.path, frame.filename)
+    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
     # send it
     with open(filename, 'rb') as fh:
         response = HttpResponse(fh.read(), content_type="image/fits")
         response.set_cookie('fileDownload', 'true', path='/')
-        response['Content-Disposition'] = 'attachment; filename={}'.format(frame.filename)
+        response['Content-Disposition'] = 'attachment; filename={}.fits.fz'.format(frame.basename)
         return response
 
 
@@ -244,7 +244,7 @@ def zip_view(request):
         frame = Frame.objects.get(id=frame_id)
 
         # get filename
-        filename = os.path.join(root, frame.path, frame.filename)
+        filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
         # add file to zip
         zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))

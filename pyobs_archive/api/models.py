@@ -97,6 +97,9 @@ class Frame(models.Model):
             self.vec_y = math.cos(dec) * math.sin(ra)
             self.vec_z = math.sin(dec)
 
+        # reduction level
+        self.RLEVEL = header['RLEVEL'] if 'RLEVEL' in header else 0
+
     def _set_header(self, header, keyword):
         """Set the attribute of this object from the FITS header of the same name.
 
@@ -115,11 +118,8 @@ class Frame(models.Model):
 
     def get_info(self):
         # init info and copy some fields
-        info = {k: getattr(self, k) for k in ['id', 'filename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
+        info = {k: getattr(self, k) for k in ['id', 'basename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
                                               'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME', 'RLEVEL']}
-
-        # add basename
-        info['basename'] = self.basename[:self.basename.find('.')]
 
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
@@ -141,6 +141,29 @@ class Frame(models.Model):
 
         # finished
         return info
+
+    def link_related(self, header):
+        """Link related images.
+
+        Args:
+            header (Header): FITS header to take data from.
+        """
+
+        # collect filenames
+        basenames = []
+        for key, value in header.items():
+            if key.startswith('L1AVG') or key in ['L1BIAS', 'L1DARK', 'L1FLAT']:
+                basenames.append(value)
+
+        # link frames
+        frames = []
+        for name in basenames:
+            try:
+                f = Frame.objects.get(basename=name)
+                frames.append(f)
+            except Frame.DoesNotExist:
+                log.error('Could not set related frames, %s not found.', name)
+        self.related.set(frames)
 
     @staticmethod
     def ingest(filename):
@@ -186,6 +209,9 @@ class Frame(models.Model):
 
         # write to database
         img.save()
+
+        # link related
+        img.link_related(fits_file['SCI'].header)
 
         # create path if necessary
         file_path = os.path.join(root, path)
