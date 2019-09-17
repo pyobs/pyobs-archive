@@ -71,7 +71,7 @@ $(function () {
         showColumns: true,
         queryParams: queryParams,
         toolbar: '#toolbar',
-        //detailView: true,
+        detailView: true,
         showExport: true,
         clickToSelect: true,
         detailFormatter: detailFormatter,
@@ -157,14 +157,14 @@ $(function () {
     }
 
     function detailFormatter(index, row, $detail) {
-        $.getJSON('frames/' + row.id + '/related/', function (data) {
+        $.getJSON('/api/frames/' + row.id + '/related/', function (data) {
             console.log(data);
             // build HTML
             let table = $detail.html(`
               <div class="row">
                 <div class="col-md-8">
                   <h4>Calibration and Catalog Frames</h4>
-                  <table class="table table-sm"></table>
+                  <table class="table table-sm image-data"></table>
                 </div>
               </div>
             `).find('.table');
@@ -277,18 +277,25 @@ $(function () {
     });
 
     function zipDownload() {
-        let selections = $('#table').bootstrapTable('getSelections');
-
+        // loop all data tables and collect frames
         let frames = [];
-        for (let i = 0; i < selections.length; i++) {
-            frames.push(selections[i].id);
-        }
+        $('table.image-data').each(function() {
+            // get selected frames
+            let selections = $(this).bootstrapTable('getSelections');
 
-        $.fileDownload('/api/frames/zip/', {
-            httpMethod: 'POST',
-            data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
-            headers: {}
+            // add them to list
+            for (let i = 0; i < selections.length; i++) {
+                frames.push(selections[i].id);
+            }
         });
+
+        if (frames.length > 0) {
+            $.fileDownload('/api/frames/zip/', {
+                httpMethod: 'POST',
+                data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
+                headers: {}
+            });
+        }
     }
 
     $('#downloadBtn').on('click', function () {
