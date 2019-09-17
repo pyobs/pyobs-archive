@@ -158,7 +158,6 @@ $(function () {
 
     function detailFormatter(index, row, $detail) {
         $.getJSON('/api/frames/' + row.id + '/related/', function (data) {
-            console.log(data);
             // build HTML
             let table = $detail.html(`
               <div class="row">
