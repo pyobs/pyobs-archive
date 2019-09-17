@@ -212,14 +212,14 @@ def headers_view(request, frame_id):
     # get frame and filename
     frame = Frame.objects.get(id=frame_id)
     root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
-    filename = os.path.join(root, frame.path, frame.filename)
+    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
     # load headers
     hdr = fits.getheader(filename, 'SCI')
-    headers = {k: hdr[k] for k in sorted(hdr.keys())}
+    headers = [{'key': k, 'value': hdr[k]} for k in sorted(hdr.keys()) if k not in ['HISTORY', 'COMMENT']]
 
     # return them
-    return JsonResponse({'data': headers})
+    return JsonResponse({'results': headers})
 
 
 class PostAuthentication(TokenAuthentication):

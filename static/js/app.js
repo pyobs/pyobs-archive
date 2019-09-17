@@ -159,17 +159,20 @@ $(function () {
     function detailFormatter(index, row, $detail) {
         $.getJSON('/api/frames/' + row.id + '/related/', function (data) {
             // build HTML
-            let table = $detail.html(`
+            let div = $detail.html(`
               <div class="row">
                 <div class="col-md-8">
                   <h4>Calibration and Catalog Frames</h4>
                   <table class="table table-sm image-data"></table>
                 </div>
+                <div class="col-md-4">
+                  <button class="btn btn-outline-primary btn-sm btn-block">FITS headers</button>
+                </div>
               </div>
-            `).find('.table');
+            `);
 
             // get table and create it
-            table.bootstrapTable({
+            div.find('.table').bootstrapTable({
                 columns: [
                     {
                         checkbox: true
@@ -186,6 +189,22 @@ $(function () {
                 data: data,
                 clickToSelect: true,
                 checkBoxHeader: false
+            });
+
+            // click on button
+            div.find('button').click(function() {
+                $.getJSON('/api/frames/' + row.id + '/headers/', function (data) {
+                    // build table
+                    let table = '<table class="table">';
+                    for (let i = 0; i < data.results.length; i++) {
+                        table += '<tr><th>' + data.results[i].key + '</th><td>' + data.results[i].value + '</td></tr>';
+                    }
+                    table += '</table>';
+
+                    // show modal window
+                    $('#headerModalBody').html(table);
+                    $('#headerModal').modal();
+                });
             });
         });
     }
