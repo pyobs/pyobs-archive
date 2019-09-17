@@ -152,7 +152,7 @@ class Frame(models.Model):
         # collect filenames
         basenames = []
         for key, value in header.items():
-            if key.startswith('L1AVG') or key in ['L1BIAS', 'L1DARK', 'L1FLAT']:
+            if key.startswith('L1AVG') or key in ['L1BIAS', 'L1DARK', 'L1FLAT', 'L1RAW']:
                 basenames.append(value)
 
         # link frames
