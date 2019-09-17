@@ -49,7 +49,7 @@ class Frame(models.Model):
     width = models.IntegerField('Width of image in binned pixels')
     height = models.IntegerField('Height of image in binned pixels')
     DATAMEAN = models.FloatField('Mean data value', null=True, default=True)
-    related = models.ManyToManyField("self")
+    related = models.ManyToManyField("self", symmetrical=False)
 
     def __str__(self):
         return self.basename
