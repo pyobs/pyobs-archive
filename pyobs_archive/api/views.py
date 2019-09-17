@@ -1,10 +1,11 @@
+import io
 import os
 import logging
-import zipfile
 import datetime
 import math
-import zipstream
 
+import numpy as np
+import zipstream
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from astropy.io import fits
 from django.conf import settings
@@ -14,8 +15,7 @@ from rest_framework.authentication import TokenAuthentication, SessionAuthentica
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
-from pyobs_archive.api.utils import FilenameFormatter
-
+from pyobs_archive.api.utils import FilenameFormatter, fitssec
 
 log = logging.getLogger(__name__)
 
@@ -220,6 +220,49 @@ def headers_view(request, frame_id):
 
     # return them
     return JsonResponse({'results': headers})
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def preview_view(request, frame_id):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+
+    # get frame and filename
+    frame = Frame.objects.get(id=frame_id)
+    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+
+    # load data and trim it
+    hdus = fits.open(filename)
+    data = fitssec(hdus['SCI'], 'TRIMSEC')
+    hdus.close()
+
+    # calculate cuts
+    percent = 95
+    sorted_data = sorted(data.flatten())
+    n = int(len(sorted_data) * (1. - (percent / 100.)))
+    cut = sorted_data[n:-n] if n > 0 else sorted_data
+    vmin, vmax = np.min(cut), np.max(cut)
+
+    # size
+    width, height = 200, 200 / data.shape[1] * data.shape[0]
+
+    # create figure
+    dpi = 100
+    fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=dpi)
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
+
+    # draw image
+    ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cm.get_cmap('Greys_r'))
+
+    # write to buffer and return it
+    with io.BytesIO() as bio:
+        fig.savefig(bio, format='png')
+        return HttpResponse(bio.getvalue(), content_type="image/png")
 
 
 class PostAuthentication(TokenAuthentication):

@@ -165,8 +165,9 @@ $(function () {
                   <h4>Calibration and Catalog Frames</h4>
                   <table class="table table-sm image-data"></table>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 text-center">
                   <button class="btn btn-outline-primary btn-sm btn-block">FITS headers</button>
+                  <img src="/static/img/ajax-loader.gif" alt="Thumbnail" />
                 </div>
               </div>
             `);
@@ -190,6 +191,9 @@ $(function () {
                 clickToSelect: true,
                 checkBoxHeader: false
             });
+
+            // image
+            div.find('img').attr('src', '/api/frames/' + row.id + '/preview/');
 
             // click on button
             div.find('button').click(function() {

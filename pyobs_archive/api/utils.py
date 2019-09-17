@@ -1,8 +1,8 @@
 import logging
 import re
-from typing import Union
 from astropy.io.fits import Header
 from astropy.time import Time
+import numpy as np
 
 
 log = logging.getLogger(__name__)
@@ -192,4 +192,36 @@ class FilenameFormatter:
         return fmt % self._value(hdr, key)
 
 
-__all__ = ['FilenameFormatter']
+def fitssec(hdu, keyword: str = 'TRIMSEC') -> np.ndarray:
+    """Trim an image to TRIMSEC or BIASSEC.
+
+    Args:
+        hdu: HDU to take data from.
+        keyword: Header keyword for section.
+
+    Returns:
+        Numpy array with image data.
+    """
+
+    # keyword not given?
+    if keyword not in hdu.header:
+        # return whole data
+        return hdu.data
+
+    # get value of section
+    sec = hdu.header[keyword]
+
+    # split values
+    s = sec[1:-1].split(',')
+    x = s[0].split(':')
+    y = s[1].split(':')
+    x0 = int(x[0]) - 1
+    x1 = int(x[1])
+    y0 = int(y[0]) - 1
+    y1 = int(y[1])
+
+    # return data
+    return hdu.data[y0:y1, x0:x1]
+
+
+__all__ = ['FilenameFormatter', 'fitssec']
