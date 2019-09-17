@@ -222,9 +222,10 @@ def headers_view(request, frame_id):
     return JsonResponse({'results': headers})
 
 
+
+#@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+#@permission_classes([IsAuthenticated])
 @api_view(['GET'])
-@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
-@permission_classes([IsAuthenticated])
 def preview_view(request, frame_id):
     import matplotlib
     matplotlib.use('Agg')
