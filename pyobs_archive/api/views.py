@@ -76,6 +76,9 @@ def filter_frames(data, request):
     f = request.GET.get('EXPTIME', '').strip()
     if f != '':
         data = data.filter(EXPTIME__gte=float(f))
+    f = request.GET.get('night', '').strip()
+    if f != '':
+        data = data.filter(night=f)
     f = request.GET.get('basename', '').strip()
     if f != '':
         data = data.filter(filename__icontains=f)
