@@ -67,6 +67,7 @@ class Frame(models.Model):
             self.DATE_OBS = make_aware(Time(header['DATE-OBS']).to_datetime())
         else:
             raise ValueError('Could not find DATE-OBS in FITS header.')
+        self.night = header['DAY-OBS']
 
         # binning
         if 'XBINNING' in header and 'YBINNING' in header:
