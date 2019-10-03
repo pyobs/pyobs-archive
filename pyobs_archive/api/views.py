@@ -61,9 +61,6 @@ def filter_frames(data, request):
     f = request.GET.get('INSTRUMENT', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(INSTRUME=f)
-    f = request.GET.get('SITE', 'ALL')
-    if f not in ['', 'ALL']:
-        data = data.filter(FILTER=f)
     f = request.GET.get('FILTER', 'ALL')
     if f not in ['', 'ALL']:
         data = data.filter(FILTER=f)
