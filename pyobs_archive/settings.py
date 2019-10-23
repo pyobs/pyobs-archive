@@ -152,6 +152,9 @@ ARCHIV_SETTINGS = {
     'FILENAME_FORMATTER': None,
 }
 
+# max upload size in bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
+
 # try to import a local_settings.py
 try:
     from .local_settings import *
