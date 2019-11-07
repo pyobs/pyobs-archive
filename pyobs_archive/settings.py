@@ -47,6 +47,11 @@ REST_FRAMEWORK = {
     ],
 }
 
+AUTHENTICATION_BACKENDS = (
+    'oauth2_provider.backends.OAuth2Backend',
+    'django.contrib.auth.backends.ModelBackend'
+)
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -55,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware'
 ]
 
 ROOT_URLCONF = 'pyobs_archive.urls'
@@ -154,6 +160,11 @@ ARCHIV_SETTINGS = {
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
+
+# oauth
+OAUTH_CLIENT_ID = os.getenv('OAUTH_CLIENT_ID', '')
+OAUTH_CLIENT_SECRET = os.getenv('OAUTH_CLIENT_SECRET', '')
+OAUTH_TOKEN_URL = os.getenv('OAUTH_TOKEN_URL', '')
 
 # try to import a local_settings.py
 try:
