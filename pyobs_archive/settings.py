@@ -47,10 +47,10 @@ REST_FRAMEWORK = {
     ],
 }
 
-AUTHENTICATION_BACKENDS = (
-    'oauth2_provider.backends.OAuth2Backend',
-    'django.contrib.auth.backends.ModelBackend'
-)
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'pyobs_archive.auth_backends.OAuth2Backend',  # Allows Oauth login with username/pass
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
