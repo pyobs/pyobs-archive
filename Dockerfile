@@ -8,4 +8,4 @@ WORKDIR /pyobs-archive
 COPY requirements.txt /pyobs-archive/
 RUN pip install -r requirements.txt
 COPY . /pyobs-archive/
-CMD gunicorn pyobs_archive.wsgi
+CMD gunicorn --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread pyobs_archive.wsgi
