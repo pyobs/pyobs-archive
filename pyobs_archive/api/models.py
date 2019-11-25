@@ -26,6 +26,7 @@ class Frame(models.Model):
     IMAGETYP = models.CharField('Type of image', max_length=10, db_index=True)
     RLEVEL = models.IntegerField('Reduction level', default=0, db_index=True)
     DATE_OBS = models.DateTimeField('Time exposure started', db_index=True)
+    night = models.DateField('Night of observation', db_index=True)
     OBJECT = models.CharField('Name of Object', max_length=50, null=True, default=None, db_index=True)
     TEL_RA = models.FloatField('Telescope Right Ascension', null=True)
     TEL_DEC = models.FloatField('Telescope Declination', null=True)
@@ -66,6 +67,7 @@ class Frame(models.Model):
             self.DATE_OBS = make_aware(Time(header['DATE-OBS']).to_datetime())
         else:
             raise ValueError('Could not find DATE-OBS in FITS header.')
+        self.night = header['DAY-OBS']
 
         # binning
         if 'XBINNING' in header and 'YBINNING' in header:

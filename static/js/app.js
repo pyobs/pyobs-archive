@@ -135,8 +135,16 @@ $(function () {
         $('#date-end').html(end.format('YYYY-MM-DD HH:mm'));
         refreshTable();
     }
-
     setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+
+    $('#night').daterangepicker({
+        singleDatePicker: true,
+        showDropdowns: true,
+        autoUpdateInput: false
+    }, function(start, end) {
+        $('#night').val(start.format('YYYY-MM-DD'));
+        refreshTable();
+    });
 
     function queryParams(params) {
         params.IMAGETYPE = $("#imagetype").val();
@@ -151,6 +159,7 @@ $(function () {
         params.RA = Utils.sexagesimalRaToDecimal($('#xloc').val());
         params.DEC = Utils.sexagesimalDecToDecimal($('#yloc').val());
         params.basename = $('#basename').val();
+        params.night = $('#night').val();
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
         return params;
