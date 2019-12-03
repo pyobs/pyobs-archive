@@ -79,6 +79,9 @@ def filter_frames(data, request):
     f = request.GET.get('basename', '').strip()
     if f != '':
         data = data.filter(filename__icontains=f)
+    f = request.GET.get('REQNUM', '').strip()
+    if f != '':
+        data = data.filter(REQNUM=f)
 
     # date
     start = request.GET.get('start', '').strip()
