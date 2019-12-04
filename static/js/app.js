@@ -135,13 +135,15 @@ $(function () {
         $('#date-end').html(end.format('YYYY-MM-DD HH:mm'));
         refreshTable();
     }
+
+    // TODO: move into some InitFromUrl method
     setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
 
     $('#night').daterangepicker({
         singleDatePicker: true,
         showDropdowns: true,
         autoUpdateInput: false
-    }, function(start, end) {
+    }, function (start, end) {
         $('#night').val(start.format('YYYY-MM-DD'));
         refreshTable();
     });
@@ -163,6 +165,16 @@ $(function () {
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
         return params;
+    }
+
+    function buildQueryParms() {
+        let params = queryParams({});
+        let output = '';
+        for (let filter in params) {
+            console.log(filter + ' -> ' + params[filter]);
+            output += '&' + filter + '=' + encodeURIComponent(params[filter]);
+        }
+        return output;
     }
 
     function detailFormatter(index, row, $detail) {
@@ -205,7 +217,7 @@ $(function () {
             div.find('img').attr('src', '/api/frames/' + row.id + '/preview/');
 
             // click on button
-            div.find('button').click(function() {
+            div.find('button').click(function () {
                 $.getJSON('/api/frames/' + row.id + '/headers/', function (data) {
                     // build table
                     let table = '<table class="table">';
@@ -224,7 +236,7 @@ $(function () {
 
     function setOptions(select, options) {
         select.change(function () {
-            $('#table').bootstrapTable('refresh');
+            refreshTable();
         });
         select.append($("<option />").val('ALL').text('ALL'));
         $.each(options, function (i) {
@@ -239,7 +251,9 @@ $(function () {
         } else {
             $('#table').bootstrapTable('refresh');
         }
-        //history.pushState({}, '', '?q=a' + buildQueryParms(rivetsBindings.params));
+        console.log($('#binning').val());
+        console.log(queryParams({}));
+        history.pushState({}, '', '?q=a' + buildQueryParms());
     }
 
     function login(username, password, callback) {
@@ -305,12 +319,13 @@ $(function () {
         setOptions($('#instrument'), data.instruments);
         setOptions($('#filter'), data.filters);
         setOptions($('#rlevel'), ['0', '1']);
+        refreshTable();
     });
 
     function zipDownload() {
         // loop all data tables and collect frames
         let frames = [];
-        $('table.image-data').each(function() {
+        $('table.image-data').each(function () {
             // get selected frames
             let selections = $(this).bootstrapTable('getSelections');
 
