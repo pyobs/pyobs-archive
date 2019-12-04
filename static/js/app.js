@@ -171,7 +171,6 @@ $(function () {
         let params = queryParams({});
         let output = '';
         for (let filter in params) {
-            console.log(filter + ' -> ' + params[filter]);
             output += '&' + filter + '=' + encodeURIComponent(params[filter]);
         }
         return output;
@@ -251,8 +250,6 @@ $(function () {
         } else {
             $('#table').bootstrapTable('refresh');
         }
-        console.log($('#binning').val());
-        console.log(queryParams({}));
         history.pushState({}, '', '?q=a' + buildQueryParms());
     }
 
