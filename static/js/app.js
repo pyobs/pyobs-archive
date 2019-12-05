@@ -46,6 +46,7 @@ function setRequestHeader(xhr) {
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
+    let initializing = true;
 
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
         setRequestHeader(jqXHR);
@@ -136,9 +137,6 @@ $(function () {
         refreshTable();
     }
 
-    // TODO: move into some InitFromUrl method
-    setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
-
     $('#night').daterangepicker({
         singleDatePicker: true,
         showDropdowns: true,
@@ -158,12 +156,13 @@ $(function () {
         params.RLEVEL = $('#rlevel').val();
         params.EXPTIME = $('#exptime').val();
         params.OBJECT = $('#object').val();
-        params.RA = Utils.sexagesimalRaToDecimal($('#xloc').val());
-        params.DEC = Utils.sexagesimalDecToDecimal($('#yloc').val());
+        params.RA = Utils.sexagesimalRaToDecimal($('#ra').val());
+        params.DEC = Utils.sexagesimalDecToDecimal($('#dec').val());
         params.basename = $('#basename').val();
         params.night = $('#night').val();
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
+        params.REQNUM = $('#reqnum').val();
         return params;
     }
 
@@ -245,6 +244,9 @@ $(function () {
     }
 
     function refreshTable() {
+        if (initializing)
+            return;
+
         if ($('#table').bootstrapTable('getData').length > 0) {
             $('#table').bootstrapTable('selectPage', 1);
         } else {
@@ -309,6 +311,7 @@ $(function () {
 
     // get options
     $.getJSON('/api/frames/aggregate/', function (data) {
+        // set options
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#binning'), data.binnings);
         setOptions($('#site'), data.sites);
@@ -316,7 +319,47 @@ $(function () {
         setOptions($('#instrument'), data.instruments);
         setOptions($('#filter'), data.filters);
         setOptions($('#rlevel'), ['0', '1']);
+
+        // set values from url
+        let params = new URLSearchParams(window.location.search);
+
+        // text values
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function(filter) {
+           $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
+        });
+
+        // combo boxes
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function(filter) {
+           $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : 'ALL');
+        });
+
+        // date range
+        if (params.has('start') && params.has('end')) {
+            setDateRange(moment(params.get('start')), moment(params.get('end')));
+        }
+        else {
+            setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+        }
+        //setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+
+        //$('#basename').val(params.has('basename') ? params.get('basename') : '');
+        //$('#object').val(params.has('OBJECT') ? params.get('OBJECT') : '');
+        //$('#binning').val(params.has('binning') ? params.get('binning') : '');
+
+        // update data
+        initializing = false;
         refreshTable();
+    });
+
+    $('#reset').click(function () {
+        // reset all
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function(filter) {
+           $('#' + filter.toLowerCase()).val('');
+        });
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function(filter) {
+           $('#' + filter.toLowerCase()).val('ALL');
+        });
+        setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
     });
 
     function zipDownload() {
@@ -348,8 +391,8 @@ $(function () {
     function lookup() {
         var name = $('#location').val();
         $.getJSON('https://simbad2k.lco.global/' + name, function (data) {
-            $('#xloc').val(data.ra.replace(/\ /g, ':'));
-            $('#yloc').val(data.dec.replace(/\ /g, ':'));
+            $('#ra').val(data.ra.replace(/\ /g, ':'));
+            $('#dec').val(data.dec.replace(/\ /g, ':'));
             refreshTable();
         });
     }
