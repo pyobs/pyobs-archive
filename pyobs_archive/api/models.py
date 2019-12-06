@@ -141,7 +141,7 @@ class Frame(models.Model):
 
         # add url
         root = settings.ARCHIV_SETTINGS['HTTP_ROOT']
-        info['url'] = urllib.parse.urljoin(root, 'frames/%d/download/' % self.id)
+        info['url'] = urllib.parse.urljoin(root, 'api/frames/%d/download/' % self.id)
 
         # finished
         return info
