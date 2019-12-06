@@ -20,7 +20,7 @@ from rest_framework.authtoken import views
 
 urlpatterns = [
     path('', include('pyobs_archive.frontend.urls')),
-    path('api/', include('pyobs_archive.api.urls')),
+    path('', include('pyobs_archive.api.urls')),
     path('admin/', admin.site.urls),
     path('api-token-auth/', views.obtain_auth_token)
 ]

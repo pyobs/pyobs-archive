@@ -53,7 +53,7 @@ $(function () {
     });
 
     $('#table').bootstrapTable({
-        url: '/api/frames/',
+        url: '/frames/',
         ajaxOptions: {
             beforeSend: function (xhr) {
                 setRequestHeader(xhr);
@@ -176,7 +176,7 @@ $(function () {
     }
 
     function detailFormatter(index, row, $detail) {
-        $.getJSON('/api/frames/' + row.id + '/related/', function (data) {
+        $.getJSON('/frames/' + row.id + '/related/', function (data) {
             // build HTML
             let div = $detail.html(`
               <div class="row">
@@ -212,11 +212,11 @@ $(function () {
             });
 
             // image
-            div.find('img').attr('src', '/api/frames/' + row.id + '/preview/');
+            div.find('img').attr('src', '/frames/' + row.id + '/preview/');
 
             // click on button
             div.find('button').click(function () {
-                $.getJSON('/api/frames/' + row.id + '/headers/', function (data) {
+                $.getJSON('/frames/' + row.id + '/headers/', function (data) {
                     // build table
                     let table = '<table class="table">';
                     for (let i = 0; i < data.results.length; i++) {
@@ -310,7 +310,7 @@ $(function () {
     }
 
     // get options
-    $.getJSON('/api/frames/aggregate/', function (data) {
+    $.getJSON('/frames/aggregate/', function (data) {
         // set options
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#binning'), data.binnings);
@@ -375,7 +375,7 @@ $(function () {
         });
 
         if (frames.length > 0) {
-            $.fileDownload('/api/frames/zip/', {
+            $.fileDownload('/frames/zip/', {
                 httpMethod: 'POST',
                 data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
                 headers: {}
