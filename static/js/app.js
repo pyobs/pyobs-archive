@@ -52,6 +52,10 @@ $(function () {
         setRequestHeader(jqXHR);
     });
 
+    function BasenameFormatter(value, row, index) {
+        return "<a href='"+row.url+"'>"+value+"</a>";
+    }
+
     $('#table').bootstrapTable({
         url: '/api/frames/',
         ajaxOptions: {
@@ -81,7 +85,8 @@ $(function () {
         }, {
             field: 'basename',
             title: 'Name',
-            sortable: true
+            sortable: true,
+            formatter: BasenameFormatter
         }, {
             field: 'DATE_OBS',
             title: 'Time',
@@ -199,7 +204,8 @@ $(function () {
                     }, {
                         field: 'basename',
                         title: 'Name',
-                        sortable: true
+                        sortable: true,
+                        formatter: BasenameFormatter
                     }, {
                         field: 'OBSTYPE',
                         title: 'Type',
