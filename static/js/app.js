@@ -43,14 +43,6 @@ function setRequestHeader(xhr) {
     }
 }
 
-function downloadFits(url) {
-    console.log(url);
-    $.fileDownload(url, {
-        httpMethod: 'GET',
-        headers: {'Authorization': 'Token ' + localStorage.getItem('token')}
-    });
-}
-
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
@@ -59,10 +51,6 @@ $(function () {
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
         setRequestHeader(jqXHR);
     });
-
-    function BasenameFormatter(value, row, index) {
-        return '<a href="#" onclick="downloadFits(\'' + row.url + '\')"><i class="fa fa-download"></i></a> ' + value;
-    }
 
     $('#table').bootstrapTable({
         url: '/api/frames/',
@@ -93,8 +81,7 @@ $(function () {
         }, {
             field: 'basename',
             title: 'Name',
-            sortable: true,
-            formatter: BasenameFormatter
+            sortable: true
         }, {
             field: 'DATE_OBS',
             title: 'Time',
@@ -212,8 +199,7 @@ $(function () {
                     }, {
                         field: 'basename',
                         title: 'Name',
-                        sortable: true,
-                        formatter: BasenameFormatter
+                        sortable: true
                     }, {
                         field: 'OBSTYPE',
                         title: 'Type',
