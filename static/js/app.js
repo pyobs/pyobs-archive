@@ -43,6 +43,14 @@ function setRequestHeader(xhr) {
     }
 }
 
+function downloadFits(url) {
+    console.log(url);
+    $.fileDownload(url, {
+        httpMethod: 'GET',
+        headers: {'Authorization': 'Token ' + localStorage.getItem('token')}
+    });
+}
+
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
@@ -53,7 +61,7 @@ $(function () {
     });
 
     function BasenameFormatter(value, row, index) {
-        return "<a href='"+row.url+"'>"+value+"</a>";
+        return '<a href="#" onclick="downloadFits(\'' + row.url + '\')"><i class="fa fa-download"></i></a> ' + value;
     }
 
     $('#table').bootstrapTable({
@@ -330,20 +338,19 @@ $(function () {
         let params = new URLSearchParams(window.location.search);
 
         // text values
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function(filter) {
-           $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
         });
 
         // combo boxes
-        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function(filter) {
-           $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : 'ALL');
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : 'ALL');
         });
 
         // date range
         if (params.has('start') && params.has('end')) {
             setDateRange(moment(params.get('start')), moment(params.get('end')));
-        }
-        else {
+        } else {
             setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
         }
         //setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
@@ -359,11 +366,11 @@ $(function () {
 
     $('#reset').click(function () {
         // reset all
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function(filter) {
-           $('#' + filter.toLowerCase()).val('');
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val('');
         });
-        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function(filter) {
-           $('#' + filter.toLowerCase()).val('ALL');
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val('ALL');
         });
         setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
     });
