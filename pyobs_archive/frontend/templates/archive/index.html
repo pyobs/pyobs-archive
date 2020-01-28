@@ -25,8 +25,8 @@
                 </div>
                 <div id="location" class="form-inline">
                     <div class="input-group">
-                        <input id="xloc" class="form-control form-control-sm keyup" placeholder="RA"/>
-                        <input id="yloc" class="form-control form-control-sm keyup" placeholder="Dec"/>
+                        <input id="ra" class="form-control form-control-sm keyup" placeholder="RA"/>
+                        <input id="dec" class="form-control form-control-sm keyup" placeholder="Dec"/>
                     </div>
                 </div>
 
@@ -64,6 +64,9 @@
                 <label for="exptime" class="col-form-label-sm mb-0 pb-0">Exposure Time</label>
                 <input id="exptime" type="number" class="form-control form-control-sm keyup"/>
 
+                <input id="reqnum" type="hidden"/>
+
+                <button id="reset" type="button" class="btn btn-light btn-block mt-4">Reset</button>
 
             </form>
         </div>

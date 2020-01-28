@@ -83,7 +83,7 @@ def filter_frames(data, request):
         data = data.filter(night=f)
     f = request.GET.get('basename', '').strip()
     if f != '':
-        data = data.filter(filename__icontains=f)
+        data = data.filter(basename__icontains=f)
     f = request.GET.get('REQNUM', '').strip()
     if f != '':
         data = data.filter(REQNUM=f)

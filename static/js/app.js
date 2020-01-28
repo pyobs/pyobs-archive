@@ -46,13 +46,14 @@ function setRequestHeader(xhr) {
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
+    let initializing = true;
 
     $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
         setRequestHeader(jqXHR);
     });
 
     $('#table').bootstrapTable({
-        url: '/api/frames/',
+        url: '/frames/',
         ajaxOptions: {
             beforeSend: function (xhr) {
                 setRequestHeader(xhr);
@@ -135,13 +136,12 @@ $(function () {
         $('#date-end').html(end.format('YYYY-MM-DD HH:mm'));
         refreshTable();
     }
-    setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
 
     $('#night').daterangepicker({
         singleDatePicker: true,
         showDropdowns: true,
         autoUpdateInput: false
-    }, function(start, end) {
+    }, function (start, end) {
         $('#night').val(start.format('YYYY-MM-DD'));
         refreshTable();
     });
@@ -156,17 +156,27 @@ $(function () {
         params.RLEVEL = $('#rlevel').val();
         params.EXPTIME = $('#exptime').val();
         params.OBJECT = $('#object').val();
-        params.RA = Utils.sexagesimalRaToDecimal($('#xloc').val());
-        params.DEC = Utils.sexagesimalDecToDecimal($('#yloc').val());
+        params.RA = Utils.sexagesimalRaToDecimal($('#ra').val());
+        params.DEC = Utils.sexagesimalDecToDecimal($('#dec').val());
         params.basename = $('#basename').val();
         params.night = $('#night').val();
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
+        params.REQNUM = $('#reqnum').val();
         return params;
     }
 
+    function buildQueryParms() {
+        let params = queryParams({});
+        let output = '';
+        for (let filter in params) {
+            output += '&' + filter + '=' + encodeURIComponent(params[filter]);
+        }
+        return output;
+    }
+
     function detailFormatter(index, row, $detail) {
-        $.getJSON('/api/frames/' + row.id + '/related/', function (data) {
+        $.getJSON('/frames/' + row.id + '/related/', function (data) {
             // build HTML
             let div = $detail.html(`
               <div class="row">
@@ -202,11 +212,11 @@ $(function () {
             });
 
             // image
-            div.find('img').attr('src', '/api/frames/' + row.id + '/preview/');
+            div.find('img').attr('src', '/frames/' + row.id + '/preview/');
 
             // click on button
-            div.find('button').click(function() {
-                $.getJSON('/api/frames/' + row.id + '/headers/', function (data) {
+            div.find('button').click(function () {
+                $.getJSON('/frames/' + row.id + '/headers/', function (data) {
                     // build table
                     let table = '<table class="table">';
                     for (let i = 0; i < data.results.length; i++) {
@@ -224,7 +234,7 @@ $(function () {
 
     function setOptions(select, options) {
         select.change(function () {
-            $('#table').bootstrapTable('refresh');
+            refreshTable();
         });
         select.append($("<option />").val('ALL').text('ALL'));
         $.each(options, function (i) {
@@ -234,12 +244,15 @@ $(function () {
     }
 
     function refreshTable() {
+        if (initializing)
+            return;
+
         if ($('#table').bootstrapTable('getData').length > 0) {
             $('#table').bootstrapTable('selectPage', 1);
         } else {
             $('#table').bootstrapTable('refresh');
         }
-        //history.pushState({}, '', '?q=a' + buildQueryParms(rivetsBindings.params));
+        history.pushState({}, '', '?q=a' + buildQueryParms());
     }
 
     function login(username, password, callback) {
@@ -297,7 +310,8 @@ $(function () {
     }
 
     // get options
-    $.getJSON('/api/frames/aggregate/', function (data) {
+    $.getJSON('/frames/aggregate/', function (data) {
+        // set options
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#binning'), data.binnings);
         setOptions($('#site'), data.sites);
@@ -305,12 +319,52 @@ $(function () {
         setOptions($('#instrument'), data.instruments);
         setOptions($('#filter'), data.filters);
         setOptions($('#rlevel'), ['0', '1']);
+
+        // set values from url
+        let params = new URLSearchParams(window.location.search);
+
+        // text values
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
+        });
+
+        // combo boxes
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : 'ALL');
+        });
+
+        // date range
+        if (params.has('start') && params.has('end')) {
+            setDateRange(moment(params.get('start')), moment(params.get('end')));
+        } else {
+            setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+        }
+        //setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
+
+        //$('#basename').val(params.has('basename') ? params.get('basename') : '');
+        //$('#object').val(params.has('OBJECT') ? params.get('OBJECT') : '');
+        //$('#binning').val(params.has('binning') ? params.get('binning') : '');
+
+        // update data
+        initializing = false;
+        refreshTable();
+    });
+
+    $('#reset').click(function () {
+        // reset all
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val('');
+        });
+        ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {
+            $('#' + filter.toLowerCase()).val('ALL');
+        });
+        setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
     });
 
     function zipDownload() {
         // loop all data tables and collect frames
         let frames = [];
-        $('table.image-data').each(function() {
+        $('table.image-data').each(function () {
             // get selected frames
             let selections = $(this).bootstrapTable('getSelections');
 
@@ -321,7 +375,7 @@ $(function () {
         });
 
         if (frames.length > 0) {
-            $.fileDownload('/api/frames/zip/', {
+            $.fileDownload('/frames/zip/', {
                 httpMethod: 'POST',
                 data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
                 headers: {}
@@ -336,8 +390,8 @@ $(function () {
     function lookup() {
         var name = $('#location').val();
         $.getJSON('https://simbad2k.lco.global/' + name, function (data) {
-            $('#xloc').val(data.ra.replace(/\ /g, ':'));
-            $('#yloc').val(data.dec.replace(/\ /g, ':'));
+            $('#ra').val(data.ra.replace(/\ /g, ':'));
+            $('#dec').val(data.dec.replace(/\ /g, ':'));
             refreshTable();
         });
     }
