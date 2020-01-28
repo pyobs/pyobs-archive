@@ -10,17 +10,13 @@ from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
-from rest_framework.response import Response
-from rest_framework import parsers, renderers
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from rest_framework.views import APIView
 
-from pyobs_archive.api.authentication import RemoteTokenAuthentication
+from pyobs_archive.authentication.authentication import RemoteTokenAuthentication
 from pyobs_archive.api.models import Frame
-from pyobs_archive.api.serializers import AuthTokenSerializer
-from pyobs_archive.api.utils import FilenameFormatter, fitssec
+from pyobs_archive.api.utils import fitssec
 
 log = logging.getLogger(__name__)
 
@@ -309,21 +305,3 @@ def zip_view(request):
     response.set_cookie('fileDownload', 'true', path='/')
     response['Content-Disposition'] = 'attachment; filename={}'.format(archive_name + '.zip')
     return response
-
-
-class ObtainAuthToken(APIView):
-    throttle_classes = ()
-    permission_classes = ()
-    parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
-    renderer_classes = (renderers.JSONRenderer,)
-    serializer_class = AuthTokenSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        token = serializer.validated_data['token']
-        return Response({'token': token})
-
-
-obtain_auth_token = ObtainAuthToken.as_view()

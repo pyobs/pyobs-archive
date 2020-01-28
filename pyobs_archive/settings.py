@@ -38,19 +38,19 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'pyobs_archive.api',
+    'pyobs_archive.authentication',
     'pyobs_archive.frontend'
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        #'rest_framework.authentication.TokenAuthentication',
-        'pyobs_archive.api.authentication.RemoteTokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'pyobs_archive.authentication.authentication.RemoteTokenAuthentication'
     ],
 }
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    #'pyobs_archive.auth_backends.OAuth2Backend',  # Allows Oauth login with username/pass
+    'django.contrib.auth.backends.ModelBackend'
 ]
 
 MIDDLEWARE = [
@@ -162,10 +162,8 @@ ARCHIV_SETTINGS = {
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
 
-# oauth
-OAUTH_CLIENT_ID = os.getenv('OAUTH_CLIENT_ID', '')
-OAUTH_CLIENT_SECRET = os.getenv('OAUTH_CLIENT_SECRET', '')
-OAUTH_TOKEN_URL = os.getenv('OAUTH_TOKEN_URL', '')
+# remote token
+REMOTE_TOKEN_URL = os.getenv('REMOTE_TOKEN_URL', '')
 
 # try to import a local_settings.py
 try:
