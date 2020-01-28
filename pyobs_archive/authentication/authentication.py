@@ -1,5 +1,4 @@
 import requests
-from django.contrib.auth.models import User
 from rest_framework import exceptions
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 
@@ -47,6 +46,7 @@ class RemoteTokenAuthentication(BaseAuthentication):
         response = res.json()
         if 'username' in response:
             try:
+                from django.contrib.auth.models import User
                 user = User.objects.get(username=response['username'])
             except User.DoesNotExist:
                 raise exceptions.AuthenticationFailed('Invalid token.')

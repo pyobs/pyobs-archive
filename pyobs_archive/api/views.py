@@ -11,10 +11,9 @@ from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
-from rest_framework.authentication import TokenAuthentication, SessionAuthentication, BasicAuthentication
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from pyobs_archive.authentication.authentication import RemoteTokenAuthentication
 from pyobs_archive.api.models import Frame
 from pyobs_archive.api.utils import fitssec
 
@@ -22,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 @api_view(['POST'])
-@authentication_classes([RemoteTokenAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAdminUser])
 def create_view(request):
     # loop all incoming files
@@ -113,7 +112,7 @@ def filter_frames(data, request):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, BasicAuthentication, SessionAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def frames_view(request):
     # get offset and limit
@@ -143,7 +142,7 @@ def frames_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, SessionAuthentication, BasicAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def aggregate_view(request):
     # get response
@@ -172,7 +171,7 @@ def aggregate_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, BasicAuthentication, SessionAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def frame_view(request, frame_id):
     # get data
@@ -181,7 +180,7 @@ def frame_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, SessionAuthentication, BasicAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def download_view(request, frame_id):
     # get frame and filename
@@ -198,7 +197,7 @@ def download_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, BasicAuthentication, SessionAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def related_view(request, frame_id):
     # get frame
@@ -210,7 +209,7 @@ def related_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes([RemoteTokenAuthentication, BasicAuthentication, SessionAuthentication])
+@authentication_classes([settings.TOKEN_AUTH])
 @permission_classes([IsAuthenticated])
 def headers_view(request, frame_id):
     # get frame and filename
@@ -227,7 +226,7 @@ def headers_view(request, frame_id):
 
 
 
-#@authentication_classes([TokenAuthentication, BasicAuthentication, SessionAuthentication])
+#@authentication_classes([TokenAuthentication])
 #@permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def preview_view(request, frame_id):

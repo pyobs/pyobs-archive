@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from rest_framework.authentication import TokenAuthentication
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
@@ -163,7 +165,8 @@ ARCHIV_SETTINGS = {
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
 
 # remote token
-REMOTE_TOKEN_URL = os.getenv('REMOTE_TOKEN_URL', '')
+REMOTE_TOKEN_URL = None
+TOKEN_AUTH = TokenAuthentication
 
 # try to import a local_settings.py
 try:

@@ -13,10 +13,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
-from pyobs_archive.authentication import views
+from rest_framework.authentication import TokenAuthentication
+if settings.TOKEN_AUTH == TokenAuthentication:
+    from rest_framework.authtoken import views
+else:
+    from pyobs_archive.authentication import views
 
 urlpatterns = [
     path('', include('pyobs_archive.frontend.urls')),
