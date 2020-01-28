@@ -43,13 +43,14 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        #'rest_framework.authentication.TokenAuthentication',
+        'pyobs_archive.api.authentication.RemoteTokenAuthentication',
     ],
 }
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'pyobs_archive.auth_backends.OAuth2Backend',  # Allows Oauth login with username/pass
+    #'pyobs_archive.auth_backends.OAuth2Backend',  # Allows Oauth login with username/pass
 ]
 
 MIDDLEWARE = [

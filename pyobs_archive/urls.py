@@ -16,7 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
-from rest_framework.authtoken import views
+#from rest_framework.authtoken import views
+from pyobs_archive.api import views
 
 urlpatterns = [
     path('', include('pyobs_archive.frontend.urls')),
