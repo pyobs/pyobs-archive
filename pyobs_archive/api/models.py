@@ -23,7 +23,7 @@ class Frame(models.Model):
     SITEID = models.CharField('Site of observation', max_length=10, db_index=True)
     TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
     INSTRUME = models.CharField('Instrument used for observation', max_length=5, db_index=True)
-    IMAGETYP = models.CharField('Type of image', max_length=10, db_index=True)
+    IMAGETYP = models.CharField('Type of image', max_length=15, db_index=True)
     RLEVEL = models.IntegerField('Reduction level', default=0, db_index=True)
     DATE_OBS = models.DateTimeField('Time exposure started', db_index=True)
     night = models.DateField('Night of observation', db_index=True)
