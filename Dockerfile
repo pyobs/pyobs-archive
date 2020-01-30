@@ -3,9 +3,9 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update \
   && apt-get install -y libcfitsio-bin \
   && rm -rf /var/lib/apt/lists/*
-RUN mkdir /pyobs-archive
-WORKDIR /pyobs-archive
+RUN mkdir /archive
+WORKDIR /archive
 COPY requirements.txt /pyobs-archive/
 RUN pip install -r requirements.txt
-COPY . /pyobs-archive/
+COPY . /archive/
 CMD gunicorn --bind 0.0.0.0:8000 --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread pyobs_archive.wsgi
