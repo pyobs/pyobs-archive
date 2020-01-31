@@ -186,7 +186,7 @@ $(function () {
                 </div>
                 <div class="col-md-4 text-center">
                   <button class="btn btn-outline-primary btn-sm btn-block">FITS headers</button>
-                  <img src="/pyobs_archive/frontend/staticarchive/frontend/static/img/ajax-loader.gif" alt="Thumbnail" />
+                  <img src="/static/img/ajax-loader.gif" alt="Thumbnail" />
                 </div>
               </div>
             `);
