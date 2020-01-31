@@ -16,6 +16,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
 from pyobs_archive.api.utils import fitssec
+from pyobs_archive.authentication.authentication import RemoteTokenAuthentication
 
 log = logging.getLogger(__name__)
 
@@ -269,7 +270,7 @@ def preview_view(request, frame_id):
         return HttpResponse(bio.getvalue(), content_type="image/png")
 
 
-class PostAuthentication(TokenAuthentication):
+class PostAuthentication(RemoteTokenAuthentication):
     def authenticate(self, request):
         token = request.POST['auth_token']
         return self.authenticate_credentials(token)
