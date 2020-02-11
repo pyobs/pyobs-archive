@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
+from rest_framework import exceptions
 from rest_framework.decorators import permission_classes, authentication_classes, api_view
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -272,6 +273,8 @@ def preview_view(request, frame_id):
 
 class PostAuthentication(RemoteTokenAuthentication):
     def authenticate(self, request):
+        if 'auth_token' not in request.POST:
+            raise exceptions.AuthenticationFailed('Missing token.')
         token = request.POST['auth_token']
         return self.authenticate_credentials(token)
 
