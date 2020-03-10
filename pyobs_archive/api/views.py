@@ -271,7 +271,7 @@ def preview_view(request, frame_id):
         return HttpResponse(bio.getvalue(), content_type="image/png")
 
 
-class PostAuthentication(RemoteTokenAuthentication):
+class PostAuthentication(settings.TOKEN_AUTH):
     def authenticate(self, request):
         if 'auth_token' not in request.POST:
             raise exceptions.AuthenticationFailed('Missing token.')
