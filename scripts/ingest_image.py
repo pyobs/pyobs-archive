@@ -31,7 +31,7 @@ def ingest_image(filename: str, url: str, token: str):
 
     # success, if status code is 200
     if r.status_code != 200:
-        print('Cannot write file, received status_code %d.' % r.status_code)
+        print('Cannot write file, received status_code %d: %s' % (r.status_code, r.content))
         sys.exit(1)
 
     # check json
