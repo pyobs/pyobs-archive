@@ -221,11 +221,10 @@ def headers_view(request, frame_id):
 
     # load headers
     hdr = fits.getheader(filename, 'SCI')
-    headers = [{'key': k, 'value': hdr[k]} for k in sorted(hdr.keys()) if k not in ['HISTORY', 'COMMENT']]
+    headers = [{'key': k, 'value': hdr[k]} for k in sorted(hdr.keys()) if k not in ['HISTORY', 'COMMENT', '']]
 
     # return them
     return JsonResponse({'results': headers})
-
 
 
 #@authentication_classes([TokenAuthentication])
