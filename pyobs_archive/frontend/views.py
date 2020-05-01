@@ -11,5 +11,11 @@ log = logging.getLogger(__name__)
 
 @ensure_csrf_cookie
 def index(request):
+    # load template
     template = loader.get_template('archive/index.html')
-    return HttpResponse(template.render({'root_url': settings.ROOT_URL}, request))
+
+    # is auth required?
+    auth_required = settings.TOKEN_AUTH is not None
+
+    # render
+    return HttpResponse(template.render({'auth_required': auth_required, 'root_url': settings.ROOT_URL}, request))

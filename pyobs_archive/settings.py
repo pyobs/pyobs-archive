@@ -166,7 +166,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
 
 # remote token
 REMOTE_TOKEN_URL = None
-TOKEN_AUTH = TokenAuthentication
+TOKEN_AUTH = None
 
 # try to import a local_settings.py
 try:

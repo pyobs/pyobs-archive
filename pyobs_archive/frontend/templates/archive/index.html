@@ -1,5 +1,60 @@
-{% extends "base.html" %}
-{% block content %}
+<!doctype html>
+{% load static %}
+<html>
+<head>
+    <title>pyobs archive</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static "img/favicon-32x32.png" %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static "img/favicon-16x16.png" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/bootstrap.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/bootstrap-table.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/daterangepicker.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/fontawesome.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/solid.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/styles.css" %}">
+</head>
+<body>
+
+<div class="loading"></div>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">pyobs archive</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+            </li>
+        </ul>
+        {% if auth_required %}
+        <form class="form-inline my-2 my-lg-0" id="login-form">
+            <div class="form-group">
+                <input class="form-control" type="email" placeholder="Email" id="email"/>
+            </div>
+            <div class="form-group">
+                <input class="form-control" type="password" placeholder="Password" id="password"/>
+            </div>
+            <button class="btn btn-success" id="login" onClick="return false;">
+                Sign in
+            </button>
+        </form>
+        <form class="form-inline my-2 my-lg-0" id="logout" style="display:none">
+            <div id="profile" class="form-group">
+                <label for="logout-button" id="username" rv-text="username"></label>
+            </div>
+            <button id="logout-button" class="btn btn-success pull-right" onClick="return false;">
+                Logout
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</nav>
+
+<div id="main" class="container">
+    <div id="alert-error"></div>
     <div class="row">
         <div class="col-2">
             <form id="query-form" class="col-form-label-sm mb-0">
@@ -99,4 +154,15 @@
         </div>
 
     </div>
-{% endblock %}
+</div>
+</body>
+<script src="{% static "js/vendor/jquery.min.js" %}"></script>
+<script src="{% static "js/vendor/moment.min.js" %}"></script>
+<script src="{% static "js/vendor/popper.min.js" %}"></script>
+<script src="{% static "js/vendor/bootstrap.min.js" %}"></script>
+<script src="{% static "js/vendor/bootstrap-table.min.js" %}"></script>
+<script src="{% static "js/vendor/daterangepicker.min.js" %}"></script>
+<script src="{% static "js/vendor/jquery.typewatch.js" %}"></script>
+<script src="{% static "js/vendor/jquery.fileDownload.js" %}"></script>
+<script src="{% static "js/app.js" %}"></script>
+</html>

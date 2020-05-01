@@ -51,7 +51,7 @@ class Frame(models.Model):
     height = models.IntegerField('Height of image in binned pixels')
     DATAMEAN = models.FloatField('Mean data value', null=True, default=True)
     related = models.ManyToManyField("self", symmetrical=False)
-    REQNUM = models.CharField('Unique number for request', max_length=10, null=True, default=None)
+    REQNUM = models.CharField('Unique number for request', max_length=30, null=True, default=None)
 
     def __str__(self):
         return self.basename
