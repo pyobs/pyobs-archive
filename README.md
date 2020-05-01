@@ -69,12 +69,9 @@ pyobs_archive/local_settings.py and override settings in the settings.py, like t
         }
     }
     
-    ARCHIV_SETTINGS = {
-        'HTTP_ROOT': 'http://localhost:8000/',
-        'ARCHIVE_ROOT': '/opt/pyobs/data/',
-        'PATH_FORMATTER': '{SITEID}/{TELID}/{INSTRUME}/',
-        'FILENAME_FORMATTER': None,
-    }
+    ARCHIVE_ROOT = '/opt/pyobs/data/'
+    PATH_FORMATTER = '{SITEID}/{TELID}/{INSTRUME}/'
+    FILENAME_FORMATTER = None,
  
 
 Used packages

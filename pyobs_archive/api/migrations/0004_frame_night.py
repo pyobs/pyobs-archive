@@ -11,7 +11,7 @@ def set_night(apps, schema_editor):
     Frame = apps.get_model('api', 'Frame')
 
     # get archive root
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    root = settings.ARCHIVE_ROOT
 
     # loop all frames
     for frame in Frame.objects.all():

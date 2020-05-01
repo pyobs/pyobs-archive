@@ -140,8 +140,7 @@ class Frame(models.Model):
         info['related_frames'] = [f.id for f in self.related.all()]
 
         # add url
-        root = settings.ARCHIV_SETTINGS['HTTP_ROOT']
-        info['url'] = urllib.parse.urljoin(root, 'frames/%d/download/' % self.id)
+        info['url'] = urllib.parse.urljoin(settings.ROOT_URL, 'frames/%d/download/' % self.id)
 
         # finished
         return info
@@ -172,17 +171,16 @@ class Frame(models.Model):
     @staticmethod
     def ingest(filename):
         # create path and filename formatter
-        if 'PATH_FORMATTER' in settings.ARCHIV_SETTINGS and settings.ARCHIV_SETTINGS['PATH_FORMATTER'] is not None:
-            path_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['PATH_FORMATTER'])
+        if hasattr(settings, 'PATH_FORMATTER') and settings.PATH_FORMATTER is not None:
+            path_fmt = FilenameFormatter(settings.PATH_FORMATTER)
         else:
             raise ValueError('No path formatter configured.')
         filename_fmt = None
-        if 'FILENAME_FORMATTER' in settings.ARCHIV_SETTINGS and \
-                settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'] is not None:
-            filename_fmt = FilenameFormatter(settings.ARCHIV_SETTINGS['FILENAME_FORMATTER'])
+        if hasattr(settings, 'FILENAME_FORMATTER') and settings.FILENAME_FORMATTER is not None:
+            filename_fmt = FilenameFormatter(settings.FILENAME_FORMATTER)
 
         # get archive root
-        root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+        root = settings.ARCHIVE_ROOT
 
         # open file
         fits_file = fits.open(filename)

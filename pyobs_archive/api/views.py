@@ -203,7 +203,7 @@ def frame_view(request, frame_id):
 def download_view(request, frame_id):
     # get frame and filename
     frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    root = settings.ARCHIVE_ROOT
     filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
     # send it
@@ -232,7 +232,7 @@ def related_view(request, frame_id):
 def headers_view(request, frame_id):
     # get frame and filename
     frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    root = settings.ARCHIVE_ROOT
     filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
     # load headers
@@ -252,7 +252,7 @@ def preview_view(request, frame_id):
 
     # get frame and filename
     frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    root = settings.ARCHIVE_ROOT
     filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
 
     # load data and trim it
@@ -289,7 +289,7 @@ def preview_view(request, frame_id):
 @permission_classes(AUTHENTICATED)
 def zip_view(request):
     # get archive root
-    root = settings.ARCHIV_SETTINGS['ARCHIVE_ROOT']
+    root = settings.ARCHIVE_ROOT
 
     # get name for archive
     archive_name = 'pyobsdata-' + datetime.datetime.now().strftime('%Y%m%d')

@@ -154,12 +154,9 @@ LOGGING = {
 }
 
 # App settings
-ARCHIV_SETTINGS = {
-    'HTTP_ROOT': 'http://localhost:8000/',
-    'ARCHIVE_ROOT': '/data/',
-    'PATH_FORMATTER': '{SITEID}/{DAY-OBS}/',
-    'FILENAME_FORMATTER': None,
-}
+ARCHIVE_ROOT = '/data/'
+PATH_FORMATTER = '{SITEID}/{DAY-OBS}/'
+FILENAME_FORMATTER = None
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
