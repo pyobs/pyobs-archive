@@ -3,7 +3,7 @@
     src:
         local('Alegreya'),
         local('Alegreya-Regular'),
-        url('/static/fonts/Alegreya-Regular.ttf');
+        url('../fonts/Alegreya-Regular.ttf');
     font-weight: normal;
     font-style: normal;
 }
@@ -12,7 +12,7 @@
     font-family: 'Alegreya';
     src:
         local('Alegreya-Bold'),
-        url('/static/fonts/Alegreya-Bold.ttf');
+        url('../fonts/Alegreya-Bold.ttf');
     font-weight: bold;
     font-style: normal;
 }
@@ -22,7 +22,7 @@
     src:
         local('Roboto')
         local('Roboto-Regular'),
-        url('/static/admin/fonts/Roboto-Bold.ttf');
+        url('../admin/fonts/Roboto-Bold.ttf');
     font-weight: bold;
     font-style: normal;
 }
@@ -58,7 +58,7 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
 	width: 100%;
 	height: 100%;
 	z-index: 9999;
-	background: url(/static/img/ajax-loader.gif) center no-repeat #fff;
+	background: url('../img/ajax-loader.gif') center no-repeat #fff;
 }
 
 table {
