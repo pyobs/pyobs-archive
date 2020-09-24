@@ -1,7 +1,7 @@
 import math
 import logging
 import subprocess
-import urllib.parse
+from urllib.parse import urljoin
 import os
 import io
 from astropy.io import fits
@@ -140,7 +140,7 @@ class Frame(models.Model):
         info['related_frames'] = [f.id for f in self.related.all()]
 
         # add url
-        info['url'] = urllib.parse.urljoin(settings.ROOT_URL, 'frames/%d/download/' % self.id)
+        info['url'] = urljoin(settings.HTTP_ROOT, urljoin(settings.ROOT_URL, 'frames/%d/download/' % self.id))
 
         # finished
         return info
