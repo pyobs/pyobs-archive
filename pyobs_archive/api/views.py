@@ -6,7 +6,8 @@ import math
 
 import numpy as np
 import zipstream
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from astropy.table import Table
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse, Http404
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
@@ -313,3 +314,29 @@ def zip_view(request):
     response.set_cookie('fileDownload', 'true', path='/')
     response['Content-Disposition'] = 'attachment; filename={}'.format(archive_name + '.zip')
     return response
+
+
+@api_view(['GET'])
+@authentication_classes(AUTH_CLASSES)
+@permission_classes(AUTHENTICATED)
+def catalog_view(request, frame_id):
+    # get frame and filename
+    frame = Frame.objects.get(id=frame_id)
+    root = settings.ARCHIVE_ROOT
+    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+
+    # load data and trim it
+    try:
+        cat = Table(fits.getdata(filename, 'CAT'))
+    except KeyError:
+        return HttpResponse('', content_type='text/comma-separated-values')
+    except FileNotFoundError:
+        raise Http404()
+
+    # prepare response and send it
+    with io.StringIO() as sio:
+        # write table as CSV
+        cat.write(sio, format='ascii', delimiter=',')
+
+        # response
+        return HttpResponse(sio.getvalue(), content_type='text/comma-separated-values')
