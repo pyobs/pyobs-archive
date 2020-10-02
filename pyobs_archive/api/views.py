@@ -39,6 +39,21 @@ else:
     AUTHENTICATED = [IsAuthenticated]
 
 
+def _frame(frame_id):
+    # get frame
+    try:
+        frame = Frame.objects.get(id=frame_id)
+    except Frame.DoesNotExist:
+        raise Http404()
+
+    # build filename
+    root = settings.ARCHIVE_ROOT
+    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+
+    # return both
+    return frame, filename
+
+
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAdminUser])
@@ -60,6 +75,23 @@ def create_view(request):
     if errors:
         res['errors'] = list(set(errors))
     return JsonResponse(res)
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def delete_view(request, frame_id):
+    # get frame and filename
+    frame, filename = _frame(frame_id)
+
+    # delete file
+    os.remove(filename)
+
+    # delete DB entry
+    frame.delete()
+
+    # finished
+    return HttpResponse()
 
 
 def filter_frames(data, request):
@@ -194,8 +226,8 @@ def aggregate_view(request):
 @permission_classes(AUTHENTICATED)
 def frame_view(request, frame_id):
     # get data
-    data = Frame.objects.get(id=frame_id)
-    return JsonResponse(data.get_info())
+    frame, filename = _frame(frame_id)
+    return JsonResponse(frame.get_info())
 
 
 @api_view(['GET'])
@@ -203,9 +235,7 @@ def frame_view(request, frame_id):
 @permission_classes(AUTHENTICATED)
 def download_view(request, frame_id):
     # get frame and filename
-    frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIVE_ROOT
-    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+    frame, filename = _frame(frame_id)
 
     # send it
     with open(filename, 'rb') as fh:
@@ -220,7 +250,7 @@ def download_view(request, frame_id):
 @permission_classes(AUTHENTICATED)
 def related_view(request, frame_id):
     # get frame
-    frame = Frame.objects.get(id=frame_id)
+    frame, filename = _frame(frame_id)
 
     # get all related and return it
     related = [f.get_info() for f in frame.related.all()]
@@ -232,9 +262,7 @@ def related_view(request, frame_id):
 @permission_classes(AUTHENTICATED)
 def headers_view(request, frame_id):
     # get frame and filename
-    frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIVE_ROOT
-    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+    frame, filename = _frame(frame_id)
 
     # load headers
     hdr = fits.getheader(filename, 'SCI')
@@ -252,9 +280,7 @@ def preview_view(request, frame_id):
     import matplotlib.cm as cm
 
     # get frame and filename
-    frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIVE_ROOT
-    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+    frame, filename = _frame(frame_id)
 
     # load data and trim it
     hdus = fits.open(filename)
@@ -301,10 +327,7 @@ def zip_view(request):
     # add files
     for frame_id in request.POST.getlist('frame_ids[]'):
         # get frame
-        frame = Frame.objects.get(id=frame_id)
-
-        # get filename
-        filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+        frame, filename = _frame(frame_id)
 
         # add file to zip
         zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))
@@ -321,9 +344,7 @@ def zip_view(request):
 @permission_classes(AUTHENTICATED)
 def catalog_view(request, frame_id):
     # get frame and filename
-    frame = Frame.objects.get(id=frame_id)
-    root = settings.ARCHIVE_ROOT
-    filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+    frame, filename = _frame(frame_id)
 
     # load data and trim it
     try:
