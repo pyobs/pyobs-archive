@@ -192,8 +192,8 @@ class Frame(models.Model):
         if isinstance(filename_fmt, FilenameFormatter):
             name = filename_fmt(fits_file['SCI'].header)
         else:
-            tmp = fits_file['SCI'].header['FNAME']
-            name = os.path.basename(tmp[:tmp.find('.')])
+            tmp = os.path.basename(fits_file['SCI'].header['FNAME'])
+            name = tmp[:tmp.find('.')] if '.' in tmp else tmp
 
         # create new filename and set it in header
         out_filename = name + '.fits.fz'
