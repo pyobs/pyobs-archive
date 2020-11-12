@@ -81,7 +81,11 @@ $(function () {
         }, {
             field: 'basename',
             title: 'Name',
-            sortable: true
+            sortable: true,
+            formatter: function(value, row) {
+                let url = rootURL + 'frames/' + row.id + '/download/';
+                return '<a href="' + url + '">' + value + '.fits.fz</a>';
+            }
         }, {
             field: 'DATE_OBS',
             title: 'Time',
