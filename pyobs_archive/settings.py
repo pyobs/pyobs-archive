@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'pyobs_archive.api',
     'pyobs_archive.authentication',
-    'pyobs_archive.frontend'
+    'pyobs_archive.frontend',
+    'pyobs_archive.js9'
 ]
 
 REST_FRAMEWORK = {

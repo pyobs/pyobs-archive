@@ -43,6 +43,14 @@ function setRequestHeader(xhr) {
     }
 }
 
+function showJS9(id) {
+    console.log(id);
+    let url = rootURL + 'js9/' + id + '/';
+    console.log(url);
+    window.open(url, 'window',
+        'width=256px,height=542px,center=1,resize=1,scrolling=1,toolbar=no,menubar=no,resizable=yes');
+}
+
 $(function () {
     // Animate loader off screen
     $(".loading").fadeOut("slow");
@@ -82,9 +90,26 @@ $(function () {
             field: 'basename',
             title: 'Name',
             sortable: true,
-            formatter: function(value, row) {
-                let url = rootURL + 'frames/' + row.id + '/download/';
-                return '<a href="' + url + '">' + value + '.fits.fz</a>';
+            formatter: function (value, row) {
+                let fileUrl = rootURL + 'frames/' + row.id + '/download/';
+                //let fileLink = '<a href="' + fileUrl + '">' + value + '.fits.fz</a>'
+                let js9Url = rootURL + 'js9/' + row.id + '/';
+                //let js9Link = '<a href="' + js9Url + '"><i class="fa fa-camera"></i></a>'
+
+                let basename = $('<span>');
+
+                let fileLink = $('<a>').attr('href', fileUrl).text(value + '.fits.fz');
+                basename.append(fileLink)
+
+                let js9Link = $('<a>').attr('href', '#').attr('onclick', 'showJS9(' + row.id + ');').append(
+                    $('<i>').attr('class', 'fa fa-camera')
+                );
+                console.log(js9Link);
+                basename.append(js9Link)
+
+
+                return basename.html();
+                //return fileLink + ' ' + js9Link;
             }
         }, {
             field: 'DATE_OBS',
