@@ -29,7 +29,7 @@ if root_url.startswith('/'):
 
 urlpatterns = [
     path(root_url, include('pyobs_archive.frontend.urls')),
-    path(root_url, include('pyobs_archive.api.urls')),
+    path(root_url + 'frames/', include('pyobs_archive.api.urls')),
     path(root_url + 'admin/', admin.site.urls),
     path(root_url + 'api-token-auth/', views.obtain_auth_token)
 ]
