@@ -48,7 +48,7 @@ function showJS9(id) {
     let url = rootURL + 'js9/' + id + '/';
     console.log(url);
     window.open(url, 'window',
-        'width=256px,height=542px,center=1,resize=1,scrolling=1,toolbar=no,menubar=no,resizable=yes');
+        'width=256,height=256,center=1,resize=1,scrolling=1,toolbar=no,menubar=no,resizable=yes');
 }
 
 $(function () {
