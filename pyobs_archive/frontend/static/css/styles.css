@@ -1,30 +1,30 @@
 @font-face {
     font-family: 'Alegreya';
-    src:
-        local('Alegreya'),
-        local('Alegreya-Regular'),
-        url('../fonts/Alegreya-Regular.ttf');
+    src: local('Alegreya'),
+    local('Alegreya-Regular'),
+    url('../fonts/Alegreya-Regular.ttf');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Alegreya';
-    src:
-        local('Alegreya-Bold'),
-        url('../fonts/Alegreya-Bold.ttf');
+    src: local('Alegreya-Bold'),
+    url('../fonts/Alegreya-Bold.ttf');
     font-weight: bold;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'Roboto';
-    src:
-        local('Roboto')
-        local('Roboto-Regular'),
-        url('../admin/fonts/Roboto-Bold.ttf');
+    src: local('Roboto') local('Roboto-Regular'),
+    url('../admin/fonts/Roboto-Bold.ttf');
     font-weight: bold;
     font-style: normal;
+}
+
+html, body {
+    height: 100%;
 }
 
 body {
@@ -35,8 +35,14 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
     font-family: 'Alegreya', serif;
 }
 
+#wrap {
+    min-height: 100%;
+}
+
 #main {
-    margin-top: 70px;
+    margin-top: 20px;
+    overflow: auto;
+    padding-bottom: 50px; /* this needs to be bigger than footer height*/
 }
 
 .datetext {
@@ -49,18 +55,38 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
     width: 100%;
 }
 
-.no-js #loader { display: none;  }
-.js #loader { display: block; position: absolute; left: 100px; top: 0; }
+.no-js #loader {
+    display: none;
+}
+
+.js #loader {
+    display: block;
+    position: absolute;
+    left: 100px;
+    top: 0;
+}
+
 .loading {
-	position: fixed;
-	left: 0;
-	top: 0;
-	width: 100%;
-	height: 100%;
-	z-index: 9999;
-	background: url('../img/ajax-loader.gif') center no-repeat #fff;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background: url('../img/ajax-loader.gif') center no-repeat #fff;
 }
 
 table {
     font-size: small;
+}
+
+footer {
+    background-color: black;
+    color: grey;
+    text-align: center;
+    position: relative;
+    margin-top: -40px; /* negative value of footer height */
+    height: 40px;
+    clear: both;
+    padding-top: 0.5em
 }
