@@ -183,6 +183,7 @@ class Frame(models.Model):
         root = settings.ARCHIVE_ROOT
 
         # open file
+        log.info('Opening new file to ingest...')
         fits_file = fits.open(filename)
 
         # get path for archive
@@ -194,6 +195,7 @@ class Frame(models.Model):
         else:
             tmp = os.path.basename(fits_file['SCI'].header['FNAME'])
             name = tmp[:tmp.find('.')] if '.' in tmp else tmp
+        log.info('Formatted filename to %s.', name)
 
         # create new filename and set it in header
         out_filename = name + '.fits.fz'
@@ -210,6 +212,7 @@ class Frame(models.Model):
         img.add_fits_header(fits_file['SCI'].header)
 
         # write to database
+        log.info('Writing to database...')
         img.save()
 
         # link related
@@ -222,6 +225,7 @@ class Frame(models.Model):
 
         # write FITS file to byte stream and close
         with io.BytesIO() as bio:
+            log.info('Writing file...')
             fits_file.writeto(bio)
             fits_file.close()
 
