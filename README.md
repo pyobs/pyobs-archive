@@ -1,11 +1,10 @@
-pyobs-archive
-=============
+# pyobs-archive
 
 A webservice for an archive for astronomical images. Implements most of the interfaces
 defined by [Las Cumbres Observatory](https://developers.lco.global/#archive).
 
-Quick start
------------
+## Quick start
+
 
 Create a docker-compose.yaml:
 
@@ -52,8 +51,8 @@ that must be used when sending new images:
 
 Now you can open a browser at http://localhost:8000/ and log in to the homepage.
 
-Development environment
------------------------
+## Development environment
+
 For development, it might be easier to not use Docker. In that case, create a 
 pyobs_archive/local_settings.py and override settings in the settings.py, like this:
 
@@ -72,10 +71,19 @@ pyobs_archive/local_settings.py and override settings in the settings.py, like t
     ARCHIVE_ROOT = '/opt/pyobs/data/'
     PATH_FORMATTER = '{SITEID}/{TELID}/{INSTRUME}/'
     FILENAME_FORMATTER = None,
+
+
+## Changelog
+
+#### version 1.0 (2020-11-23)
+- Initial release
+
+#### version 1.1
+- Added footer to page 
  
 
-Used packages
--------------
+## Used packages
+
 The following packages are used in this project.
 
 Python:
