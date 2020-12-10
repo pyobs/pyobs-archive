@@ -75,11 +75,14 @@ pyobs_archive/local_settings.py and override settings in the settings.py, like t
 
 ## Changelog
 
-#### version 1.0 (2020-11-23)
+#### version 1.0.0 (2020-11-23)
 - Initial release
 
-#### version 1.1
+#### version 1.1.0 (2020-12-04)
 - Added footer to page 
+
+### version 1.1.1 (2020-12-10)
+- Minor bugfix
  
 
 ## Used packages
