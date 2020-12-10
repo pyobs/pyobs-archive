@@ -55,7 +55,7 @@ def _frame(frame_id):
 
 
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
+@authentication_classes(AUTH_CLASSES)
 @permission_classes([IsAdminUser])
 def create_view(request):
     # loop all incoming files
@@ -78,7 +78,7 @@ def create_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes([TokenAuthentication])
+@authentication_classes(AUTH_CLASSES)
 @permission_classes([IsAdminUser])
 def delete_view(request, frame_id):
     # get frame and filename
