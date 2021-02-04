@@ -210,6 +210,9 @@ def aggregate_view(request):
     filters = list(data.values_list('FILTER', flat=True).distinct())
     binning = list(data.values_list('XBINNING', 'YBINNING').distinct())
 
+    # remove Nones
+    filters = [(x or "None") for x in filters]
+
     # return all
     return JsonResponse({
         'imagetypes': sorted(image_types),
