@@ -114,6 +114,8 @@ def filter_frames(data, request):
         data = data.filter(INSTRUME=f)
     f = request.GET.get('FILTER', 'ALL')
     if f not in ['', 'ALL']:
+        if f == 'None':
+            f = None
         data = data.filter(FILTER=f)
     f = request.GET.get('RLEVEL', 'ALL')
     if f not in ['', 'ALL']:
