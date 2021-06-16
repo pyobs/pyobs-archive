@@ -49,6 +49,7 @@ class BearerAuthentication(authentication.BaseAuthentication):
     the odin auth server
     """
     def authenticate(self, request):
+        print('bearer')
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
         if 'Bearer' not in auth_header:
             return None
