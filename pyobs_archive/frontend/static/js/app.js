@@ -53,7 +53,7 @@ $(function () {
     });
 
     $('#table').bootstrapTable({
-        url: rootURL + 'frames/',
+        url: '/frames/',
         ajaxOptions: {
             beforeSend: function (xhr) {
                 setRequestHeader(xhr);
@@ -83,7 +83,7 @@ $(function () {
             title: 'Name',
             sortable: true,
             formatter: function(value, row) {
-                let url = rootURL + 'frames/' + row.id + '/download/';
+                let url = '/frames/' + row.id + '/download/';
                 return '<a href="' + url + '">' + value + '.fits.fz</a>';
             }
         }, {
@@ -180,7 +180,7 @@ $(function () {
     }
 
     function detailFormatter(index, row, $detail) {
-        $.getJSON(rootURL + 'frames/' + row.id + '/related/', function (data) {
+        $.getJSON('/frames/' + row.id + '/related/', function (data) {
             // build HTML
             let div = $detail.html(`
               <div class="row">
@@ -216,11 +216,11 @@ $(function () {
             });
 
             // image
-            div.find('img').attr('src', rootURL + 'frames/' + row.id + '/preview/');
+            div.find('img').attr('src', '/frames/' + row.id + '/preview/');
 
             // click on button
             div.find('button').click(function () {
-                $.getJSON(rootURL + 'frames/' + row.id + '/headers/', function (data) {
+                $.getJSON('/frames/' + row.id + '/headers/', function (data) {
                     // build table
                     let table = '<table class="table">';
                     for (let i = 0; i < data.results.length; i++) {
@@ -260,7 +260,7 @@ $(function () {
     }
 
     function login(username, password, callback) {
-        $.post(rootURL + 'api-token-auth/', {
+        $.post('/api-token-auth/', {
             'username': username,
             'password': password
         }).done(function (data) {
@@ -314,7 +314,7 @@ $(function () {
     }
 
     // get options
-    $.getJSON(rootURL + 'frames/aggregate/', function (data) {
+    $.getJSON('/frames/aggregate/', function (data) {
         // set options
         setOptions($('#imagetype'), data.imagetypes);
         setOptions($('#binning'), data.binnings);
@@ -379,7 +379,7 @@ $(function () {
         });
 
         if (frames.length > 0) {
-            $.fileDownload(rootURL + 'frames/zip/', {
+            $.fileDownload('/frames/zip/', {
                 httpMethod: 'POST',
                 data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
                 headers: {}
