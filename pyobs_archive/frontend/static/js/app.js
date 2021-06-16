@@ -39,7 +39,7 @@ const Utils = {
 
 function setRequestHeader(xhr) {
     if (localStorage.getItem('token')) {
-        xhr.setRequestHeader('Authorization', 'Token ' + localStorage.getItem('token'));
+        xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('token'));
     }
 }
 
