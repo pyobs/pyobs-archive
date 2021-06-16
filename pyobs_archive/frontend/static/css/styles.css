@@ -35,6 +35,12 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
     font-family: 'Alegreya', serif;
 }
 
+.navbar-brand {
+    color: white;
+    font-size: x-large;
+    margin-right: 1em;
+}
+
 #wrap {
     min-height: 100%;
 }
@@ -90,4 +96,13 @@ footer {
     clear: both;
     padding-top: 0.5em;
     font-size: smaller;
+}
+
+.loginform {
+  min-width: 500px;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
