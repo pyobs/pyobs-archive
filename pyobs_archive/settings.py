@@ -174,6 +174,7 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # App settings
+LOGO_LINK = 'https://pyobs.github.io'
 ARCHIVE_ROOT = '/data/'
 PATH_FORMATTER = '{SITEID}/{DAY-OBS}/'
 FILENAME_FORMATTER = None
