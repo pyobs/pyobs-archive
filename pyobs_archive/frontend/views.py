@@ -1,9 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.http import HttpResponse
 from django.shortcuts import redirect
-from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render
 
@@ -18,4 +16,4 @@ def index(request):
         return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
 
     # render
-    return render(request, 'archive/index.html', {'root_url': settings.ROOT_URL, 'user': request.user})
+    return render(request, 'archive/index.html', {'user': request.user})

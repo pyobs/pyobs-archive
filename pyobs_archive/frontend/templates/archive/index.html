@@ -1,178 +1,119 @@
-<!doctype html>
-{% load static version %}
-<html>
-<head>
-    <title>pyobs archive</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static "img/favicon-32x32.png" %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static "img/favicon-16x16.png" %}">
-    <link rel="stylesheet" href="{% static "css/vendor/bootstrap.min.css" %}">
-    <link rel="stylesheet" href="{% static "css/vendor/bootstrap-table.min.css" %}">
-    <link rel="stylesheet" href="{% static "css/vendor/daterangepicker.css" %}">
-    <link rel="stylesheet" href="{% static "css/vendor/fontawesome.min.css" %}">
-    <link rel="stylesheet" href="{% static "css/vendor/solid.min.css" %}">
-    <link rel="stylesheet" href="{% static "css/styles.css" %}">
-    <script>let rootURL = '{{ root_url|safe }}';</script>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <span class="navbar-brand">
-        <a href="https://monet.uni-goettingen.de/">
-            <img src="{{ root_url|safe }}static/img/logo.gif" height="40" alt="Logo">
+{% block content %}
 
-        </a>
-        Archive
-    </span>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+    <div class="loading"></div>
 
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-            </li>
-        </ul>
-        <ul class="navbar-nav justify-content-end">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
-                   aria-expanded="false"><i class="fas fa-user-alt"></i></a>
-                <div class="dropdown-menu dropdown-menu-right text-right">
-                    <span class="dropdown-item">
-                        Logged in as<br>
-                        <span class="font-weight-bold">{{ user.username }}</span>
-                    </span>
-                    <a class="dropdown-item" href="{{ root_url|safe }}accounts/logout">Logout</a>
+    <div id="alert-error"></div>
+    <div class="row">
+        <div class="col-2">
+            <form id="query-form" class="col-form-label-sm mb-0">
+                <div id="daterange" class="datetext">
+                    <i class="fa fa-calendar"></i>&nbsp; <span id="date-start"></span><br/>
+                    <b class="fa fa-caret-down"></b>&nbsp; <span id="date-end"></span>
                 </div>
-            </li>
-        </ul>
-    </div>
-</nav>
 
-<div class="loading"></div>
+                <label for="night" class="col-form-label-sm mb-0 pb-0">Night</label>
+                <input id="night" type="text" class="form-control form-control-sm"/>
 
-<div id="wrap">
-    <div id="main" class="container">
-        <div id="alert-error"></div>
-        <div class="row">
-            <div class="col-2">
-                <form id="query-form" class="col-form-label-sm mb-0">
-                    <div id="daterange" class="datetext">
-                        <i class="fa fa-calendar"></i>&nbsp; <span id="date-start"></span><br/>
-                        <b class="fa fa-caret-down"></b>&nbsp; <span id="date-end"></span>
-                    </div>
+                <label for="basename" class="col-form-label-sm mb-0 pb-0">Basename</label>
+                <input id="basename" type="text" class="form-control form-control-sm keyup"/>
 
-                    <label for="night" class="col-form-label-sm mb-0 pb-0">Night</label>
-                    <input id="night" type="text" class="form-control form-control-sm"/>
-
-                    <label for="basename" class="col-form-label-sm mb-0 pb-0">Basename</label>
-                    <input id="basename" type="text" class="form-control form-control-sm keyup"/>
-
-                    <label for="location" class="col-form-label-sm mb-0 pb-0">Point</label>
-                    <div class="input-group" id="lookup">
-                        <input id="location" type="text" placeholder="Search Sources"
-                               class="form-control form-control-sm"/>
-                        <div class="input-group-append">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" id="lookup-btn">
-                                <span class="fas fa-search"></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="location" class="form-inline">
-                        <div class="input-group">
-                            <input id="ra" class="form-control form-control-sm keyup" placeholder="RA"/>
-                            <input id="dec" class="form-control form-control-sm keyup" placeholder="Dec"/>
-                        </div>
-                    </div>
-
-                    <label for="object" class="col-form-label-sm mb-0 pb-0">Object</label>
-                    <input id="object" type="input" class="form-control form-control-sm keyup"/>
-
-                    <label for="binning" class="col-form-label-sm mb-0 pb-0">Binning</label>
-                    <select id="binning" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="imagetype" class="col-form-label-sm mb-0 pb-0">Imagetype</label>
-                    <select id="imagetype" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="rlevel" class="col-form-label-sm mb-0 pb-0">Reduction Level</label>
-                    <select id="rlevel" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="site" class="col-form-label-sm mb-0 pb-0">Site</label>
-                    <select id="site" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="telescope" class="col-form-label-sm mb-0 pb-0">Telescope</label>
-                    <select id="telescope" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="instrument" class="col-form-label-sm mb-0 pb-0">Instrument</label>
-                    <select id="instrument" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="filter" class="col-form-label-sm mb-0 pb-0">Filter</label>
-                    <select id="filter" class="form-control form-control-sm">
-                    </select>
-
-                    <label for="exptime" class="col-form-label-sm mb-0 pb-0">Exposure Time</label>
-                    <input id="exptime" type="number" class="form-control form-control-sm keyup"/>
-
-                    <input id="reqnum" type="hidden"/>
-
-                    <button id="reset" type="button" class="btn btn-light btn-block mt-4">Reset</button>
-
-                </form>
-            </div>
-            <div class="col-10">
-                <div id="toolbar">
-                    <div class="form-inline">
-                        <div class="form-group form-inline">
-                            <div class="btn-toolbar" role="group">
-                                <button id="downloadBtn" class="btn btn-primary">Download</button>
-                            </div>
-                        </div>
+                <label for="location" class="col-form-label-sm mb-0 pb-0">Point</label>
+                <div class="input-group" id="lookup">
+                    <input id="location" type="text" placeholder="Search Sources"
+                           class="form-control form-control-sm"/>
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" id="lookup-btn">
+                            <span class="fas fa-search"></span>
+                        </button>
                     </div>
                 </div>
-                <table id="table" class="table table-sm image-data"></table>
-            </div>
-
-            <div class="modal fade" id="headerModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Headers</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body" id="headerModalBody">
-                        </div>
+                <div id="location" class="form-inline">
+                    <div class="input-group">
+                        <input id="ra" class="form-control form-control-sm keyup" placeholder="RA"/>
+                        <input id="dec" class="form-control form-control-sm keyup" placeholder="Dec"/>
                     </div>
                 </div>
-            </div>
 
+                <label for="object" class="col-form-label-sm mb-0 pb-0">Object</label>
+                <input id="object" type="input" class="form-control form-control-sm keyup"/>
+
+                <label for="binning" class="col-form-label-sm mb-0 pb-0">Binning</label>
+                <select id="binning" class="form-control form-control-sm">
+                </select>
+
+                <label for="imagetype" class="col-form-label-sm mb-0 pb-0">Imagetype</label>
+                <select id="imagetype" class="form-control form-control-sm">
+                </select>
+
+                <label for="rlevel" class="col-form-label-sm mb-0 pb-0">Reduction Level</label>
+                <select id="rlevel" class="form-control form-control-sm">
+                </select>
+
+                <label for="site" class="col-form-label-sm mb-0 pb-0">Site</label>
+                <select id="site" class="form-control form-control-sm">
+                </select>
+
+                <label for="telescope" class="col-form-label-sm mb-0 pb-0">Telescope</label>
+                <select id="telescope" class="form-control form-control-sm">
+                </select>
+
+                <label for="instrument" class="col-form-label-sm mb-0 pb-0">Instrument</label>
+                <select id="instrument" class="form-control form-control-sm">
+                </select>
+
+                <label for="filter" class="col-form-label-sm mb-0 pb-0">Filter</label>
+                <select id="filter" class="form-control form-control-sm">
+                </select>
+
+                <label for="exptime" class="col-form-label-sm mb-0 pb-0">Exposure Time</label>
+                <input id="exptime" type="number" class="form-control form-control-sm keyup"/>
+
+                <input id="reqnum" type="hidden"/>
+
+                <button id="reset" type="button" class="btn btn-light btn-block mt-4">Reset</button>
+
+            </form>
         </div>
+        <div class="col-10">
+            <div id="toolbar">
+                <div class="form-inline">
+                    <div class="form-group form-inline">
+                        <div class="btn-toolbar" role="group">
+                            <button id="downloadBtn" class="btn btn-primary">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <table id="table" class="table table-sm image-data"></table>
+        </div>
+
+        <div class="modal fade" id="headerModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Headers</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body" id="headerModalBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
-</div>
 
-<footer>
-    pyobs-archive v{% version %}
-    (<a href="https://github.com/pyobs/pyobs-archive">GitHub</a>,
-    <a href="https://hub.docker.com/repository/docker/thusser/pyobs-archive">Docker</a>))
-    by <a href="mailto:thusser@uni-goettingen.de">Tim-Oliver Husser</a>
-</footer>
-
-</body>
-<script src="{% static "js/vendor/jquery.min.js" %}"></script>
-<script src="{% static "js/vendor/moment.min.js" %}"></script>
-<script src="{% static "js/vendor/popper.min.js" %}"></script>
-<script src="{% static "js/vendor/bootstrap.min.js" %}"></script>
-<script src="{% static "js/vendor/bootstrap-table.min.js" %}"></script>
-<script src="{% static "js/vendor/daterangepicker.min.js" %}"></script>
-<script src="{% static "js/vendor/jquery.typewatch.js" %}"></script>
-<script src="{% static "js/vendor/jquery.fileDownload.js" %}"></script>
-<script src="{% static "js/app.js" %}"></script>
-</html>
+    <script src="{% static "js/vendor/jquery.min.js" %}"></script>
+    <script src="{% static "js/vendor/bootstrap.min.js" %}"></script>
+    <script src="{% static "js/vendor/moment.min.js" %}"></script>
+    <script src="{% static "js/vendor/popper.min.js" %}"></script>
+    <script src="{% static "js/vendor/bootstrap-table.min.js" %}"></script>
+    <script src="{% static "js/vendor/daterangepicker.min.js" %}"></script>
+    <script src="{% static "js/vendor/jquery.typewatch.js" %}"></script>
+    <script src="{% static "js/vendor/jquery.fileDownload.js" %}"></script>
+    <script src="{% static "js/app.js" %}"></script>
+{% endblock %}
