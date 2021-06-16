@@ -11,32 +11,13 @@ from django.http import HttpResponse, JsonResponse, StreamingHttpResponse, Http4
 from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
-from rest_framework import exceptions
-from rest_framework.decorators import permission_classes, authentication_classes, api_view
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
 from pyobs_archive.api.utils import fitssec
 
 log = logging.getLogger(__name__)
-
-
-# define classes for authentication
-if settings.TOKEN_AUTH is None:
-    AUTH_CLASSES = []
-    POST_AUTH_CLASSES = []
-    AUTHENTICATED = []
-else:
-    class PostAuthentication(settings.TOKEN_AUTH):
-        def authenticate(self, request):
-            if 'auth_token' not in request.POST:
-                raise exceptions.AuthenticationFailed('Missing token.')
-            token = request.POST['auth_token']
-            return self.authenticate_credentials(token)
-    AUTH_CLASSES = [settings.TOKEN_AUTH]
-    POST_AUTH_CLASSES = [PostAuthentication]
-    AUTHENTICATED = [IsAuthenticated]
 
 
 def _frame(frame_id):
@@ -55,7 +36,6 @@ def _frame(frame_id):
 
 
 @api_view(['POST'])
-@authentication_classes(AUTH_CLASSES)
 @permission_classes([IsAdminUser])
 def create_view(request):
     # loop all incoming files
@@ -78,7 +58,6 @@ def create_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
 @permission_classes([IsAdminUser])
 def delete_view(request, frame_id):
     # get frame and filename
@@ -165,8 +144,7 @@ def filter_frames(data, request):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def frames_view(request):
     # get offset and limit
     offset = request.GET.get('offset', default=None)
@@ -195,8 +173,7 @@ def frames_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def aggregate_view(request):
     # get response
     data = Frame.objects
@@ -227,8 +204,7 @@ def aggregate_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def frame_view(request, frame_id):
     # get data
     frame, filename = _frame(frame_id)
@@ -236,8 +212,7 @@ def frame_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def download_view(request, frame_id):
     # get frame and filename
     frame, filename = _frame(frame_id)
@@ -251,8 +226,7 @@ def download_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def related_view(request, frame_id):
     # get frame
     frame, filename = _frame(frame_id)
@@ -263,8 +237,7 @@ def related_view(request, frame_id):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def headers_view(request, frame_id):
     # get frame and filename
     frame, filename = _frame(frame_id)
@@ -278,6 +251,7 @@ def headers_view(request, frame_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def preview_view(request, frame_id):
     import matplotlib
     matplotlib.use('Agg')
@@ -317,8 +291,7 @@ def preview_view(request, frame_id):
 
 
 @api_view(['POST'])
-@authentication_classes(POST_AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def zip_view(request):
     # get archive root
     root = settings.ARCHIVE_ROOT
@@ -345,8 +318,7 @@ def zip_view(request):
 
 
 @api_view(['GET'])
-@authentication_classes(AUTH_CLASSES)
-@permission_classes(AUTHENTICATED)
+@permission_classes([IsAuthenticated])
 def catalog_view(request, frame_id):
     # get frame and filename
     frame, filename = _frame(frame_id)
