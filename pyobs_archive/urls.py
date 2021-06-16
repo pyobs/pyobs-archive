@@ -16,11 +16,6 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from rest_framework.authentication import TokenAuthentication
-if settings.TOKEN_AUTH == TokenAuthentication:
-    from rest_framework.authtoken import views
-else:
-    from pyobs_archive.authentication import views
 
 # get root url
 root_url = settings.ROOT_URL
@@ -31,5 +26,5 @@ urlpatterns = [
     path(root_url, include('pyobs_archive.frontend.urls')),
     path(root_url + 'frames/', include('pyobs_archive.api.urls')),
     path(root_url + 'admin/', admin.site.urls),
-    path(root_url + 'api-token-auth/', views.obtain_auth_token)
+    path(root_url + 'accounts/', include('django.contrib.auth.urls')),
 ]

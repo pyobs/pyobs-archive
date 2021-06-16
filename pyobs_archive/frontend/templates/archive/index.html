@@ -15,10 +15,14 @@
 </head>
 <body>
 
-<div class="loading"></div>
-
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">pyobs archive</a>
+    <span class="navbar-brand">
+        <a href="https://monet.uni-goettingen.de/">
+            <img src="{{ root_url|safe }}static/img/logo.gif" height="40" alt="Logo">
+
+        </a>
+        Archive
+    </span>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -30,29 +34,23 @@
                 <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
             </li>
         </ul>
-        {% if auth_required %}
-            <form class="form-inline my-2 my-lg-0" id="login-form">
-                <div class="form-group">
-                    <input class="form-control" type="email" placeholder="Email" id="email"/>
+        <ul class="navbar-nav justify-content-end">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
+                   aria-expanded="false"><i class="fas fa-user-alt"></i></a>
+                <div class="dropdown-menu dropdown-menu-right text-right">
+                    <span class="dropdown-item">
+                        Logged in as<br>
+                        <span class="font-weight-bold">{{ user.username }}</span>
+                    </span>
+                    <a class="dropdown-item" href="{{ root_url|safe }}accounts/logout">Logout</a>
                 </div>
-                <div class="form-group">
-                    <input class="form-control" type="password" placeholder="Password" id="password"/>
-                </div>
-                <button class="btn btn-success" id="login" onClick="return false;">
-                    Sign in
-                </button>
-            </form>
-            <form class="form-inline my-2 my-lg-0" id="logout" style="display:none">
-                <div id="profile" class="form-group">
-                    <label for="logout-button" id="username" rv-text="username"></label>
-                </div>
-                <button id="logout-button" class="btn btn-success pull-right" onClick="return false;">
-                    Logout
-                </button>
-            </form>
-        {% endif %}
+            </li>
+        </ul>
     </div>
 </nav>
+
+<div class="loading"></div>
 
 <div id="wrap">
     <div id="main" class="container">

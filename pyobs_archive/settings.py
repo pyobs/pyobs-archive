@@ -52,7 +52,8 @@ REST_FRAMEWORK = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend'
+    'django.contrib.auth.backends.ModelBackend',
+    'pyobs_archive.authentication.backends.OAuth2Backend',  # Allows Oauth login with username/pass
 ]
 
 MIDDLEWARE = [
@@ -155,6 +156,24 @@ LOGGING = {
     },
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'pyobs_archive.authentication.backends.BearerAuthentication',  # Allows auth using oauth bearer
+    ),
+}
+
+OAUTH_CLIENT = {
+    'CLIENT_ID': os.getenv('OAUTH_CLIENT_ID', ''),
+    'CLIENT_SECRET': os.getenv('OAUTH_CLIENT_SECRET', ''),
+    'TOKEN_URL': os.getenv('OAUTH_TOKEN_URL', 'http://localhost/o/token/'),
+    'PROFILE_URL': os.getenv('OAUTH_PROFILE_URL', 'http://localhost/api/profile/'),
+}
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
 # App settings
 ARCHIVE_ROOT = '/data/'
 PATH_FORMATTER = '{SITEID}/{DAY-OBS}/'
@@ -162,10 +181,6 @@ FILENAME_FORMATTER = None
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
-
-# remote token
-REMOTE_TOKEN_URL = None
-TOKEN_AUTH = None
 
 # try to import a local_settings.py
 try:

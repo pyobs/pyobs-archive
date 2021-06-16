@@ -2,8 +2,10 @@ import logging
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.template import loader
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.shortcuts import render
 
 
 log = logging.getLogger(__name__)
@@ -11,11 +13,9 @@ log = logging.getLogger(__name__)
 
 @ensure_csrf_cookie
 def index(request):
-    # load template
-    template = loader.get_template('archive/index.html')
-
-    # is auth required?
-    auth_required = settings.TOKEN_AUTH is not None
+    # not logged in?
+    if not request.user.is_authenticated:
+        return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
 
     # render
-    return HttpResponse(template.render({'auth_required': auth_required, 'root_url': settings.ROOT_URL}, request))
+    return render(request, 'archive/index.html', {'root_url': settings.ROOT_URL, 'user': request.user})
