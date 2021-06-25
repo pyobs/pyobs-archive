@@ -82,7 +82,10 @@
                 <div class="form-inline">
                     <div class="form-group form-inline">
                         <div class="btn-toolbar" role="group">
-                            <button id="downloadBtn" class="btn btn-primary">Download</button>
+                            <form id="zip-form">
+                                {% csrf_token %}
+                                <button type="button" id="downloadBtn" class="btn btn-primary">Download</button>
+                            </form>
                         </div>
                     </div>
                 </div>

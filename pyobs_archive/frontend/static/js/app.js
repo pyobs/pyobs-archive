@@ -82,7 +82,7 @@ $(function () {
             field: 'basename',
             title: 'Name',
             sortable: true,
-            formatter: function(value, row) {
+            formatter: function (value, row) {
                 let url = '/frames/' + row.id + '/download/';
                 return '<a href="' + url + '">' + value + '.fits.fz</a>';
             }
@@ -259,39 +259,6 @@ $(function () {
         history.pushState({}, '', '?q=a' + buildQueryParms());
     }
 
-    function login(username, password, callback) {
-        $.post('/api-token-auth/', {
-            'username': username,
-            'password': password
-        }).done(function (data) {
-            localStorage.setItem('token', data.token);
-            callback(true);
-        }).fail(function () {
-            callback(false);
-        });
-    }
-
-    function logout() {
-        localStorage.removeItem('token');
-    }
-
-    $('#login').click(function () {
-        login($('#email').val(), $('#password').val(), function (result) {
-            if (result) {
-                $('#login-form').hide();
-                $('#alert').alert('close');
-                $('#logout').show();
-                refreshTable();
-            } else {
-                if ($("#alert-error").find("div#alert").length == 0) {
-                    $("#alert-error").append("<div class='alert alert-danger alert-dismissable' id='alert'>" +
-                        "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button> " +
-                        "Login failed.</div>");
-                }
-            }
-        });
-    });
-
     $('.keyup').typeWatch({
         callback: function callback() {
             refreshTable();
@@ -299,13 +266,6 @@ $(function () {
         wait: 500,
         highlight: true,
         captureLength: 1
-    });
-
-    $('#logout').click(function () {
-        logout();
-        $('#login-form').show();
-        $('#logout').hide();
-        refreshTable();
     });
 
     if (localStorage.getItem('token') !== null) {
@@ -379,10 +339,10 @@ $(function () {
         });
 
         if (frames.length > 0) {
+            let token = $("#zip-form").find('input[name=csrfmiddlewaretoken]').val()
             $.fileDownload('/frames/zip/', {
                 httpMethod: 'POST',
-                data: {'frame_ids': frames, 'auth_token': localStorage.getItem('token')},
-                headers: {}
+                data: {'frame_ids': frames, csrfmiddlewaretoken: token}
             });
         }
     }
