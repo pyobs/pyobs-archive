@@ -1,8 +1,10 @@
 import io
+import json
 import os
 import logging
 import datetime
 import math
+import time
 
 import numpy as np
 import zipstream
@@ -12,6 +14,7 @@ from astropy.io import fits
 from django.conf import settings
 from django.db.models import F
 from rest_framework.decorators import permission_classes, api_view
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
@@ -147,8 +150,15 @@ def filter_frames(data, request):
 @permission_classes([IsAuthenticated])
 def frames_view(request):
     # get offset and limit
-    offset = request.GET.get('offset', default=None)
-    limit = request.GET.get('limit', default=None)
+    try:
+        offset = int(request.GET.get('offset', default=0))
+        limit = int(request.GET.get('limit', default=1000))
+    except ValueError:
+        raise ParseError('Invalid values for offset/limit.')
+
+    # limit to 1000
+    limit = max(0, min(limit, 1000))
+    offset = max(0, offset)
 
     # sort
     sort = request.GET.get('sort', default='DATE_OBS')
@@ -162,14 +172,10 @@ def frames_view(request):
     data = filter_frames(data, request)
 
     # get results
-    if offset is None or limit is None:
-        results = [frame.get_info() for frame in data]
-    else:
-        results = [frame.get_info() for frame in data[int(offset):int(offset) + int(limit)]]
+    results = [frame.get_info() for frame in data[int(offset):int(offset) + int(limit)]]
 
     # return them
-    return JsonResponse({'count': len(data),
-                         'results': results})
+    return JsonResponse({'count': len(results), 'results': results})
 
 
 @api_view(['GET'])
