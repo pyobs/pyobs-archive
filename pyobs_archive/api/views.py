@@ -175,7 +175,7 @@ def frames_view(request):
     results = [frame.get_info() for frame in data[int(offset):int(offset) + int(limit)]]
 
     # return them
-    return JsonResponse({'count': len(results), 'results': results})
+    return JsonResponse({'count': data.count(), 'results': results})
 
 
 @api_view(['GET'])
