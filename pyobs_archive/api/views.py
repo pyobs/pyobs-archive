@@ -166,7 +166,7 @@ def frames_view(request):
     sort_string = ('' if order == 'asc' else '-') + sort
 
     # get response
-    data = Frame.objects.order_by(sort_string)
+    data = Frame.objects.order_by(sort_string, 'id')
 
     # filter
     data = filter_frames(data, request)
