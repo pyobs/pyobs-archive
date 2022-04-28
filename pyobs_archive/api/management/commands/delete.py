@@ -35,7 +35,7 @@ class Command(BaseCommand):
         for d in to_delete:
             # get filename
             root = settings.ARCHIVE_ROOT
-            filename = os.path.join(root, frame.path, frame.basename + '.fits.fz')
+            filename = os.path.join(root, d.path, d.basename + '.fits.fz')
 
             # delete file
             os.remove(filename)
