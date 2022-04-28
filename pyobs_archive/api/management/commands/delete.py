@@ -7,7 +7,7 @@ from pyobs_archive import settings
 
 
 class Command(BaseCommand):
-    help = 'Ingest images'
+    help = 'Delete images'
 
     def add_arguments(self, parser):
         parser.add_argument('files', type=str, nargs='+', help='Names of files to delete')
@@ -17,7 +17,7 @@ class Command(BaseCommand):
         for filename in files:
             frames = Frame.objects.filter(basename=filename)
             if len(frames) > 0:
-                to_delete.append(frames)
+                to_delete.extend(frames)
 
         if not to_delete:
             return
@@ -25,7 +25,7 @@ class Command(BaseCommand):
         print("Images to delete:")
         for d in to_delete:
             print("  - " + d.basename)
-        reply = None
+        reply = "X"
         while reply not in 'yYnN':
             reply = input("Delete files? [yn]")
 
