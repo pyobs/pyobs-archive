@@ -59,6 +59,17 @@ $(function () {
                 setRequestHeader(xhr);
             }
         },
+        onLoadSuccess: function() {
+            // update download search button
+            let downloadSearchBtn = $('#downloadSearchBtn');
+            let rows = this.totalRows;
+            downloadSearchBtn.html('Download all (' + rows + ')');
+            downloadSearchBtn.attr('href', 'frames/zip?q=a' + buildQueryParms());
+        },
+        onCheck: on_check,
+        onUncheck: on_check,
+        onCheckAll: on_check,
+        onUncheckAll: on_check,
         totalField: 'count',
         dataField: 'results',
         pagination: true,
@@ -116,6 +127,14 @@ $(function () {
             sortable: true
         }]
     });
+
+    function on_check() {
+
+        // update download button
+        let downloadBtn = $('#downloadBtn');
+        var rows = $('#table').bootstrapTable('getSelections').length;
+        downloadBtn.html('Download selected (' + rows + ')');
+    }
 
     $('#daterange').daterangepicker({
         'locale': {
