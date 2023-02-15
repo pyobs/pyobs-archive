@@ -84,7 +84,13 @@
                         <div class="btn-toolbar" role="group">
                             <form id="zip-form">
                                 {% csrf_token %}
-                                <button type="button" id="downloadBtn" class="btn btn-primary">Download</button>
+                                <button type="button" id="downloadBtn" class="btn btn-success">Download selected</button>
+                            </form>
+                        </div>
+                        <div class="btn-toolbar ml-2" role="group">
+                            <form id="zip-form">
+                                {% csrf_token %}
+                                <a id="downloadSearchBtn" href="#" class="btn btn-primary" style="color: white">Download all</a>
                             </form>
                         </div>
                     </div>

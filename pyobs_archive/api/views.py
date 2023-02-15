@@ -166,7 +166,7 @@ def frames_view(request):
     sort_string = ('' if order == 'asc' else '-') + sort
 
     # get response
-    data = Frame.objects.order_by(sort_string)
+    data = Frame.objects.order_by(sort_string, 'id')
 
     # filter
     data = filter_frames(data, request)
@@ -296,9 +296,56 @@ def preview_view(request, frame_id):
         return HttpResponse(bio.getvalue(), content_type="image/png")
 
 
-@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def zip_view(request):
+    if request.method == 'POST':
+        return zip_view_post(request)
+    elif request.method == 'GET':
+        return zip_view_get(request)
+    else:
+        raise Http404
+
+
+def zip_view_post(request):
+    # get frames
+    frames = []
+    for frame_id in request.POST.getlist('frame_ids[]'):
+        # get frame
+        frames.append(_frame(frame_id))
+
+    # download
+    return _download_zip(request, frames)
+
+
+def zip_view_get(request):
+    # get offset and limit
+    try:
+        offset = int(request.GET.get('offset', default=0))
+        limit = int(request.GET.get('limit', default=1000))
+    except ValueError:
+        raise ParseError('Invalid values for offset/limit.')
+
+    # limit to 1000
+    limit = max(0, min(limit, 1000))
+    offset = max(0, offset)
+
+    # sort
+    sort = request.GET.get('sort', default='DATE_OBS')
+    order = request.GET.get('order', default='asc')
+    sort_string = ('' if order == 'asc' else '-') + sort
+
+    # filter
+    data = filter_frames(Frame.objects, request)
+
+    # and frames
+    root = settings.ARCHIVE_ROOT
+    frames = [(frame, os.path.join(root, frame.path, frame.basename + '.fits.fz')) for frame in data]
+
+    # download
+    return _download_zip(request, frames)
+
+
+def _download_zip(request, frames):
     # get archive root
     root = settings.ARCHIVE_ROOT
 
@@ -309,12 +356,10 @@ def zip_view(request):
     zip_file = zipstream.ZipFile()
 
     # add files
-    for frame_id in request.POST.getlist('frame_ids[]'):
-        # get frame
-        frame, filename = _frame(frame_id)
-
+    for frame, filename in frames:
         # add file to zip
-        zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))
+        if os.path.exists(filename):
+            zip_file.write(filename, arcname=os.path.join(archive_name, os.path.basename(filename)))
 
     # create and return response
     response = StreamingHttpResponse(zip_file, content_type='application/zip')
