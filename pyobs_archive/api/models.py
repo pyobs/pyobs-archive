@@ -257,7 +257,8 @@ class Frame(models.Model):
 
     def delete_file(self):
         # delete file
-        os.remove(self.filename)
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
 
     def check_file(self) -> bool:
         # get filename
