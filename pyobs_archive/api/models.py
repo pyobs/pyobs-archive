@@ -225,7 +225,7 @@ class Frame(models.Model):
 
         # write FITS file to byte stream and close
         with io.BytesIO() as bio:
-            log.info('Writing file...')
+            log.info('Writing file to buffer...')
             fits_file.writeto(bio)
             fits_file.close()
             buffer = bytes(bio.getbuffer())
@@ -235,8 +235,13 @@ class Frame(models.Model):
         log.info('Fpacking file...')
         proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE,
-                                stdout=open(os.path.join(file_path, out_filename), 'wb'))
-        proc.communicate(buffer)
+                                stdout=subprocess.PIPE)
+        data, _ = proc.communicate(buffer)
+        log.info(f"Packed file into {len(data)} bytes.")
+
+        # write file
+        with open(os.path.join(file_path, out_filename), 'wb') as f:
+            f.write(data)
 
         # all good store it
         if proc.returncode == 0:
