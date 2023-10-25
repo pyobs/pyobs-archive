@@ -250,10 +250,32 @@ class Frame(models.Model):
         else:
             raise ValueError('Could not fpack file %s.' % filename)
 
-    def delete_file(self):
-        # get filename
+    @property
+    def filename(self):
         root = settings.ARCHIVE_ROOT
-        filename = os.path.join(root, self.path, self.basename + '.fits.fz')
+        return os.path.join(root, self.path, self.basename + '.fits.fz')
 
+    def delete_file(self):
         # delete file
-        os.remove(filename)
+        os.remove(self.filename)
+
+    def check_file(self) -> bool:
+        # get filename
+        filename = self.filename
+
+        # does it exist?
+        if not os.path.exists(filename):
+            return False
+
+        # check file size
+        if os.path.getsize(filename) == 0:
+            return False
+
+        # try to get header
+        try:
+            fits.getheader(filename)
+        except:
+            return False
+
+        # all good
+        return True
