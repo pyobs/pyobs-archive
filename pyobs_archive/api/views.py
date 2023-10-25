@@ -44,6 +44,7 @@ def create_view(request):
     # loop all incoming files
     filenames = []
     errors = []
+    log.info(f"Received {len(request.FILES)} new file(s).")
     for key in request.FILES:
         try:
             # ingest frame
