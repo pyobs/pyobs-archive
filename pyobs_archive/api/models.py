@@ -228,17 +228,19 @@ class Frame(models.Model):
             log.info('Writing file...')
             fits_file.writeto(bio)
             fits_file.close()
+            buffer = bytes(bio.getbuffer())
+            log.info(f"Wrote {len(buffer)} bytes.")
 
-            # pipe data into fpack
-            log.info('Fpacking file...')
-            proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
-                                    stdin=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    stdout=open(os.path.join(file_path, out_filename), 'wb'))
-            proc.communicate(bytes(bio.getbuffer()))
+        # pipe data into fpack
+        log.info('Fpacking file...')
+        proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
+                                stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                                stdout=open(os.path.join(file_path, out_filename), 'wb'))
+        proc.communicate(buffer)
 
-            # all good store it
-            if proc.returncode == 0:
-                log.info('Stored image as %s...', img.basename)
-                return img.basename
-            else:
-                raise ValueError('Could not fpack file %s.' % filename)
+        # all good store it
+        if proc.returncode == 0:
+            log.info('Stored image as %s...', out_filename)
+            return img.basename
+        else:
+            raise ValueError('Could not fpack file %s.' % filename)
