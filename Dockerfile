@@ -8,4 +8,5 @@ WORKDIR /archive
 COPY requirements.txt /archive/
 RUN pip install -r requirements.txt
 COPY . /archive/
-CMD gunicorn --bind 0.0.0.0:8000 --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread pyobs_archive.wsgi
+RUN python manage.py collectstatic --no-input
+CMD bash -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 --worker-tmp-dir /dev/shm --workers=5 --threads=4 --worker-class=gthread pyobs_archive.wsgi"
