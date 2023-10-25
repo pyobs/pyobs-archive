@@ -249,3 +249,11 @@ class Frame(models.Model):
             return img.basename
         else:
             raise ValueError('Could not fpack file %s.' % filename)
+
+    def delete_file(self):
+        # get filename
+        root = settings.ARCHIVE_ROOT
+        filename = os.path.join(root, self.path, self.basename + '.fits.fz')
+
+        # delete file
+        os.remove(filename)

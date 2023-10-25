@@ -33,13 +33,7 @@ class Command(BaseCommand):
             return
 
         for d in to_delete:
-            # get filename
-            root = settings.ARCHIVE_ROOT
-            filename = os.path.join(root, d.path, d.basename + '.fits.fz')
-
-            # delete file
-            os.remove(filename)
-
-            # delete db entry
+            # delete file and db entry
+            d.delete_file()
             d.delete()
 
