@@ -28,7 +28,7 @@ class Command(BaseCommand):
             if frame.check_file():
                 # file ok
                 if last_percent and last_percent < ipercent:
-                    print(f"[{ipercent}%]")
+                    print(f"[{ipercent}%]", end='', flush=True)
                 else:
                     if i % 100 == 0:
                         # print a point every 100 entries
