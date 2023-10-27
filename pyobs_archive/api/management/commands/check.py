@@ -37,9 +37,11 @@ class Command(BaseCommand):
             else:
                 # file not ok, dry run?
                 if 'dry' in options and options["dry"]:
-                    print(f'\n{frame.basename} missing, deleting database entry.')
+                    print(f'\n{frame.basename} missing.')
                 else:
-                    print(f'{frame.basename} missing.')
+                    print(f'{frame.basename} missing, deleting database entry.')
+                    frame.delete_file()
+                    frame.delete()
 
             # remember percent
             last_percent = percent
