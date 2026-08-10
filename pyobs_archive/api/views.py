@@ -61,7 +61,7 @@ def create_view(request):
     return JsonResponse(res)
 
 
-@api_view(['GET'])
+@api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def delete_view(request, frame_id):
     # get frame and filename

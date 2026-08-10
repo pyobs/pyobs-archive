@@ -1,5 +1,9 @@
 moment().format();
 
+function escapeHtml(value) {
+    return $('<div>').text(value).html();
+}
+
 const Utils = {
     isNumeric: function isNumeric(number) {
         return !isNaN(parseFloat(number) && isFinite(number));
@@ -244,7 +248,7 @@ $(function () {
                     // build table
                     let table = '<table class="table">';
                     for (let i = 0; i < data.results.length; i++) {
-                        table += '<tr><th>' + data.results[i].key + '</th><td>' + data.results[i].value + '</td></tr>';
+                        table += '<tr><th>' + escapeHtml(data.results[i].key) + '</th><td>' + escapeHtml(data.results[i].value) + '</td></tr>';
                     }
                     table += '</table>';
 
