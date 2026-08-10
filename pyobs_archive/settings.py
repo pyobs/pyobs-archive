@@ -139,8 +139,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = '/static/'
 
-# allow access from other pages, e.g. portal
-CORS_ALLOW_ALL_ORIGINS = True
+# allow access from other pages, e.g. portal - populate the actual origins in local_settings.py per deployment
+CORS_ALLOWED_ORIGINS = []
 
 # logging
 LOGGING = {
