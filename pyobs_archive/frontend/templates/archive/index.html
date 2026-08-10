@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static "css/vendor/bootstrap-table.min.css" %}">
+    <link rel="stylesheet" href="{% static "css/vendor/daterangepicker.css" %}">
+{% endblock %}
+
 {% block content %}
 
     <div class="loading"></div>
@@ -10,8 +15,8 @@
         <div class="col-2">
             <form id="query-form" class="col-form-label-sm mb-0">
                 <div id="daterange" class="datetext">
-                    <i class="fa fa-calendar"></i>&nbsp; <span id="date-start"></span><br/>
-                    <b class="fa fa-caret-down"></b>&nbsp; <span id="date-end"></span>
+                    <i class="bi bi-calendar"></i>&nbsp; <span id="date-start"></span><br/>
+                    <b class="bi bi-caret-down-fill"></b>&nbsp; <span id="date-end"></span>
                 </div>
 
                 <label for="night" class="col-form-label-sm mb-0 pb-0">Night</label>
@@ -24,13 +29,11 @@
                 <div class="input-group" id="lookup">
                     <input id="location" type="text" placeholder="Search Sources"
                            class="form-control form-control-sm"/>
-                    <div class="input-group-append">
-                        <button class="btn btn-sm btn-outline-secondary" type="button" id="lookup-btn">
-                            <span class="fas fa-search"></span>
-                        </button>
-                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="lookup-btn">
+                        <span class="bi bi-search"></span>
+                    </button>
                 </div>
-                <div id="location" class="form-inline">
+                <div id="location" class="d-flex align-items-center gap-2">
                     <div class="input-group">
                         <input id="ra" class="form-control form-control-sm keyup" placeholder="RA"/>
                         <input id="dec" class="form-control form-control-sm keyup" placeholder="Dec"/>
@@ -74,26 +77,24 @@
                 <input id="reqnum" type="hidden"/>
                 <input id="obsnum" type="hidden"/>
 
-                <button id="reset" type="button" class="btn btn-light btn-block mt-4">Reset</button>
+                <button id="reset" type="button" class="btn btn-light w-100 mt-4">Reset</button>
 
             </form>
         </div>
         <div class="col-10">
             <div id="toolbar">
-                <div class="form-inline">
-                    <div class="form-group form-inline">
-                        <div class="btn-toolbar" role="group">
-                            <form id="zip-form">
-                                {% csrf_token %}
-                                <button type="button" id="downloadBtn" class="btn btn-success">Download selected</button>
-                            </form>
-                        </div>
-                        <div class="btn-toolbar ml-2" role="group">
-                            <form id="zip-form">
-                                {% csrf_token %}
-                                <a id="downloadSearchBtn" href="#" class="btn btn-primary" style="color: white">Download all</a>
-                            </form>
-                        </div>
+                <div class="d-flex align-items-center">
+                    <div class="btn-toolbar" role="group">
+                        <form id="zip-form">
+                            {% csrf_token %}
+                            <button type="button" id="downloadBtn" class="btn btn-success">Download selected</button>
+                        </form>
+                    </div>
+                    <div class="btn-toolbar ms-2" role="group">
+                        <form id="zip-form">
+                            {% csrf_token %}
+                            <a id="downloadSearchBtn" href="#" class="btn btn-primary" style="color: white">Download all</a>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -105,9 +106,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Headers</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="headerModalBody">
                     </div>
@@ -119,8 +118,6 @@
 
     <script src="{% static "js/vendor/jquery.min.js" %}"></script>
     <script src="{% static "js/vendor/moment.min.js" %}"></script>
-    <script src="{% static "js/vendor/popper.min.js" %}"></script>
-    <script src="{% static "js/vendor/bootstrap.min.js" %}"></script>
     <script src="{% static "js/vendor/bootstrap-table.min.js" %}"></script>
     <script src="{% static "js/vendor/daterangepicker.min.js" %}"></script>
     <script src="{% static "js/vendor/jquery.typewatch.js" %}"></script>
