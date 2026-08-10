@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class Frame(models.Model):
     """A single image."""
-    basename = models.CharField('Name of file', max_length=50, db_index=True)
+    basename = models.CharField('Name of file', max_length=50, unique=True)
     path = models.CharField('Path to file', max_length=100)
     SITEID = models.CharField('Site of observation', max_length=10, db_index=True)
     TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
@@ -203,10 +203,7 @@ class Frame(models.Model):
         fits_file['SCI'].header['FNAME'] = name
 
         # find or create image
-        if Frame.objects.filter(basename=name).exists():
-            img = Frame.objects.get(basename=name)
-        else:
-            img = Frame(basename=name)
+        img = Frame.objects.filter(basename=name).first() or Frame(basename=name)
 
         # set headers
         img.path = path
