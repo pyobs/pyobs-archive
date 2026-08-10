@@ -49,11 +49,13 @@ class BearerAuthentication(authentication.BaseAuthentication):
     the odin auth server
     """
     def authenticate(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if 'Bearer' not in auth_header:
+        auth_header = authentication.get_authorization_header(request).split()
+        if not auth_header or auth_header[0].lower() != b'bearer':
             return None
+        if len(auth_header) != 2:
+            raise exceptions.AuthenticationFailed('Invalid Authorization header')
 
-        bearer = auth_header.split('Bearer')[1].strip()
+        bearer = auth_header[1].decode()
         response = requests.get(
             settings.OAUTH_CLIENT['PROFILE_URL'],
             headers={'Authorization': 'Bearer {}'.format(bearer)}
