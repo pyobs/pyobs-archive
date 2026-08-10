@@ -254,7 +254,7 @@ $(function () {
 
                     // show modal window
                     $('#headerModalBody').html(table);
-                    $('#headerModal').modal();
+                    bootstrap.Modal.getOrCreateInstance('#headerModal').show();
                 });
             });
         });
