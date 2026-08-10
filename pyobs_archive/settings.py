@@ -52,13 +52,6 @@ INSTALLED_APPS = [
     'pyobs_archive.frontend'
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'pyobs_archive.authentication.authentication.RemoteTokenAuthentication'
-    ],
-}
-
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'pyobs_archive.authentication.backends.OAuth2Backend',  # Allows Oauth login with username/pass
