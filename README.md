@@ -18,6 +18,9 @@ Create a docker-compose.yaml:
       web:
         image: thusser/pyobs-archive
         command: gunicorn --bind 0.0.0.0:8000 pyobs_archive.wsgi
+        environment:
+          - SECRET_KEY=change-me-to-a-long-random-string
+          - ALLOWED_HOSTS=your.domain.here
         ports:
           - "8000:8000"
         volumes:
