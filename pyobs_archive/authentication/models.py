@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 import logging
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class Profile(models.Model):
