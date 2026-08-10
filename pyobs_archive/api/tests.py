@@ -1,3 +1,5 @@
+import tempfile
+
 from astropy.io import fits
 from django.test import TestCase, RequestFactory
 
@@ -132,3 +134,43 @@ class FilterFramesTests(TestCase):
     def test_filter_by_binning(self):
         result = self._filtered(binning='2x2')
         self.assertEqual(list(result), [self.frame_b])
+
+
+class FrameIngestPathSafetyTests(TestCase):
+    def setUp(self):
+        self.archive_root = tempfile.mkdtemp()
+
+    def _write_fits(self, **header_overrides):
+        primary = fits.PrimaryHDU()
+        sci = fits.ImageHDU(name='SCI')
+        sci.header['DATE-OBS'] = '2024-01-15T10:00:00'
+        sci.header['DAY-OBS'] = '2024-01-15'
+        sci.header['SITEID'] = 'site1'
+        sci.header['FNAME'] = 'testframe'
+        for key, value in header_overrides.items():
+            sci.header[key] = value
+        hdul = fits.HDUList([primary, sci])
+        tmp = tempfile.NamedTemporaryFile(suffix='.fits', delete=False)
+        hdul.writeto(tmp.name, overwrite=True)
+        return tmp.name
+
+    def test_path_traversal_via_header_value_is_rejected(self):
+        filename = self._write_fits(SITEID='../../../etc')
+        with self.settings(ARCHIVE_ROOT=self.archive_root, PATH_FORMATTER='{SITEID}/{DAY-OBS}/',
+                            FILENAME_FORMATTER=None):
+            with self.assertRaises(ValueError):
+                Frame.ingest(filename)
+
+    def test_absolute_path_via_header_value_is_rejected(self):
+        filename = self._write_fits(SITEID='/etc')
+        with self.settings(ARCHIVE_ROOT=self.archive_root, PATH_FORMATTER='{SITEID}/{DAY-OBS}/',
+                            FILENAME_FORMATTER=None):
+            with self.assertRaises(ValueError):
+                Frame.ingest(filename)
+
+    def test_basename_with_separator_is_rejected(self):
+        filename = self._write_fits(FNAME='../evil')
+        with self.settings(ARCHIVE_ROOT=self.archive_root, PATH_FORMATTER='{SITEID}/{DAY-OBS}/',
+                            FILENAME_FORMATTER='{FNAME}'):
+            with self.assertRaises(ValueError):
+                Frame.ingest(filename)
