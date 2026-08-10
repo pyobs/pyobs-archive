@@ -77,6 +77,20 @@ def delete_view(request, frame_id):
     return HttpResponse()
 
 
+def sort_frames(data, request):
+    # only allow sorting by an actual field on the model, otherwise order_by() raises an
+    # uncaught FieldError
+    valid_fields = {f.name for f in Frame._meta.get_fields()}
+    sort = request.GET.get('sort', default='DATE_OBS')
+    order = request.GET.get('order', default='asc')
+    if sort not in valid_fields:
+        raise ParseError('Invalid value for sort.')
+    if order not in ('asc', 'desc'):
+        raise ParseError('Invalid value for order.')
+    sort_string = ('' if order == 'asc' else '-') + sort
+    return data.order_by(sort_string, 'id')
+
+
 def filter_frames(data, request):
     # filter
     f = request.GET.get('IMAGETYPE', 'ALL')
@@ -164,13 +178,8 @@ def frames_view(request):
     limit = max(0, min(limit, 1000))
     offset = max(0, offset)
 
-    # sort
-    sort = request.GET.get('sort', default='DATE_OBS')
-    order = request.GET.get('order', default='asc')
-    sort_string = ('' if order == 'asc' else '-') + sort
-
-    # get response
-    data = Frame.objects.order_by(sort_string, 'id')
+    # get response, sorted
+    data = sort_frames(Frame.objects, request)
 
     # filter
     data = filter_frames(data, request)
@@ -332,11 +341,6 @@ def zip_view_get(request):
     # limit to 1000
     limit = max(0, min(limit, 1000))
     offset = max(0, offset)
-
-    # sort
-    sort = request.GET.get('sort', default='DATE_OBS')
-    order = request.GET.get('order', default='asc')
-    sort_string = ('' if order == 'asc' else '-') + sort
 
     # filter
     data = filter_frames(Frame.objects, request)
