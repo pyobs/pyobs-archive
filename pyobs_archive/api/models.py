@@ -124,7 +124,7 @@ class Frame(models.Model):
     def get_info(self):
         # init info and copy some fields
         info = {k: getattr(self, k) for k in ['id', 'basename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
-                                              'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME', 'RLEVEL',
+                                              'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME',
                                               'REQNUM', 'OBSNUM']}
 
         # add obstype
@@ -283,7 +283,7 @@ class Frame(models.Model):
         # try to get header
         try:
             fits.getheader(filename)
-        except:
+        except Exception:
             return False
 
         # all good
