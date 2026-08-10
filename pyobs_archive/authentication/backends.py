@@ -12,8 +12,6 @@ class OAuth2Backend(object):
     """
 
     def authenticate(self, request, username=None, password=None):
-        if username == 'eng':
-            return None  # disable eng account
         response = requests.post(
             settings.OAUTH_CLIENT['TOKEN_URL'],
             data={
@@ -25,7 +23,7 @@ class OAuth2Backend(object):
             }
         )
         if response.status_code == 200:
-            user, _ = User.objects.get_or_create(username=username)
+            user, _ = User.objects.get_or_create(username=username, defaults={'is_active': False})
             Profile.objects.update_or_create(
                 user=user,
                 defaults={
@@ -33,6 +31,8 @@ class OAuth2Backend(object):
                     'refresh_token': response.json()['refresh_token']
                 }
             )
+            if not user.is_active:
+                return None
             return user
         return None
 
@@ -49,11 +49,13 @@ class BearerAuthentication(authentication.BaseAuthentication):
     the odin auth server
     """
     def authenticate(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if 'Bearer' not in auth_header:
+        auth_header = authentication.get_authorization_header(request).split()
+        if not auth_header or auth_header[0].lower() != b'bearer':
             return None
+        if len(auth_header) != 2:
+            raise exceptions.AuthenticationFailed('Invalid Authorization header')
 
-        bearer = auth_header.split('Bearer')[1].strip()
+        bearer = auth_header[1].decode()
         response = requests.get(
             settings.OAUTH_CLIENT['PROFILE_URL'],
             headers={'Authorization': 'Bearer {}'.format(bearer)}
@@ -62,11 +64,13 @@ class BearerAuthentication(authentication.BaseAuthentication):
         if not response.status_code == 200:
             raise exceptions.AuthenticationFailed('No Such User')
 
-        user, _ = User.objects.get_or_create(username=response.json()['email'])
+        user, _ = User.objects.get_or_create(username=response.json()['email'], defaults={'is_active': False})
         Profile.objects.update_or_create(
             user=user,
             defaults={
                 'access_token': bearer,
             }
         )
+        if not user.is_active:
+            raise exceptions.AuthenticationFailed('Account pending activation')
         return (user, None)

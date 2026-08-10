@@ -44,6 +44,7 @@ def create_view(request):
     # loop all incoming files
     filenames = []
     errors = []
+    log.info(f"Received {len(request.FILES)} new file(s).")
     for key in request.FILES:
         try:
             # ingest frame
@@ -60,7 +61,7 @@ def create_view(request):
     return JsonResponse(res)
 
 
-@api_view(['GET'])
+@api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def delete_view(request, frame_id):
     # get frame and filename
@@ -74,6 +75,20 @@ def delete_view(request, frame_id):
 
     # finished
     return HttpResponse()
+
+
+def sort_frames(data, request):
+    # only allow sorting by an actual field on the model, otherwise order_by() raises an
+    # uncaught FieldError
+    valid_fields = {f.name for f in Frame._meta.get_fields()}
+    sort = request.GET.get('sort', default='DATE_OBS')
+    order = request.GET.get('order', default='asc')
+    if sort not in valid_fields:
+        raise ParseError('Invalid value for sort.')
+    if order not in ('asc', 'desc'):
+        raise ParseError('Invalid value for order.')
+    sort_string = ('' if order == 'asc' else '-') + sort
+    return data.order_by(sort_string, 'id')
 
 
 def filter_frames(data, request):
@@ -117,6 +132,9 @@ def filter_frames(data, request):
     f = request.GET.get('REQNUM', '').strip()
     if f != '':
         data = data.filter(REQNUM=f)
+    f = request.GET.get('OBSNUM', '').strip()
+    if f != '':
+        data = data.filter(OBSNUM=f)
 
     # date
     start = request.GET.get('start', '').strip()
@@ -160,13 +178,8 @@ def frames_view(request):
     limit = max(0, min(limit, 1000))
     offset = max(0, offset)
 
-    # sort
-    sort = request.GET.get('sort', default='DATE_OBS')
-    order = request.GET.get('order', default='asc')
-    sort_string = ('' if order == 'asc' else '-') + sort
-
-    # get response
-    data = Frame.objects.order_by(sort_string, 'id')
+    # get response, sorted
+    data = sort_frames(Frame.objects, request)
 
     # filter
     data = filter_frames(data, request)
@@ -262,7 +275,6 @@ def preview_view(request, frame_id):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
 
     # get frame and filename
     frame, filename = _frame(frame_id)
@@ -288,7 +300,7 @@ def preview_view(request, frame_id):
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
 
     # draw image
-    ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cm.get_cmap('Greys_r'))
+    ax.imshow(data, vmin=vmin, vmax=vmax, cmap='Greys_r')
 
     # write to buffer and return it
     with io.BytesIO() as bio:
@@ -328,11 +340,6 @@ def zip_view_get(request):
     # limit to 1000
     limit = max(0, min(limit, 1000))
     offset = max(0, offset)
-
-    # sort
-    sort = request.GET.get('sort', default='DATE_OBS')
-    order = request.GET.get('order', default='asc')
-    sort_string = ('' if order == 'asc' else '-') + sort
 
     # filter
     data = filter_frames(Frame.objects, request)

@@ -1,5 +1,9 @@
 moment().format();
 
+function escapeHtml(value) {
+    return $('<div>').text(value).html();
+}
+
 const Utils = {
     isNumeric: function isNumeric(number) {
         return !isNaN(parseFloat(number) && isFinite(number));
@@ -79,7 +83,14 @@ $(function () {
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
         showRefresh: true,
-        iconsPrefix: 'fas',
+        iconsPrefix: 'bi',
+        icons: {
+            refresh: 'bi-arrow-clockwise',
+            columns: 'bi-list-columns',
+            detailOpen: 'bi-plus',
+            detailClose: 'bi-dash',
+            export: 'bi-download'
+        },
         showColumns: true,
         queryParams: queryParams,
         toolbar: '#toolbar',
@@ -128,11 +139,17 @@ $(function () {
         }]
     });
 
+    // bootstrap-table still emits data-toggle="dropdown" (Bootstrap 3/4); Bootstrap 5 needs data-bs-toggle
+    $('.fixed-table-toolbar').find('[data-toggle="dropdown"]').attr('data-bs-toggle', 'dropdown');
+
     function on_check() {
 
-        // update download button
+        // update download button, counting selections across the main table and any expanded detail tables
         let downloadBtn = $('#downloadBtn');
-        var rows = $('#table').bootstrapTable('getSelections').length;
+        var rows = 0;
+        $('table.image-data').each(function () {
+            rows += $(this).bootstrapTable('getSelections').length;
+        });
         downloadBtn.html('Download selected (' + rows + ')');
     }
 
@@ -186,6 +203,7 @@ $(function () {
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
         params.REQNUM = $('#reqnum').val();
+        params.OBSNUM = $('#obsnum').val();
         return params;
     }
 
@@ -231,7 +249,11 @@ $(function () {
                 ],
                 data: data,
                 clickToSelect: true,
-                checkBoxHeader: false
+                checkBoxHeader: false,
+                onCheck: on_check,
+                onUncheck: on_check,
+                onCheckAll: on_check,
+                onUncheckAll: on_check
             });
 
             // image
@@ -243,13 +265,13 @@ $(function () {
                     // build table
                     let table = '<table class="table">';
                     for (let i = 0; i < data.results.length; i++) {
-                        table += '<tr><th>' + data.results[i].key + '</th><td>' + data.results[i].value + '</td></tr>';
+                        table += '<tr><th>' + escapeHtml(data.results[i].key) + '</th><td>' + escapeHtml(data.results[i].value) + '</td></tr>';
                     }
                     table += '</table>';
 
                     // show modal window
                     $('#headerModalBody').html(table);
-                    $('#headerModal').modal();
+                    bootstrap.Modal.getOrCreateInstance('#headerModal').show();
                 });
             });
         });
@@ -307,7 +329,7 @@ $(function () {
         let params = new URLSearchParams(window.location.search);
 
         // text values
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM', 'OBSNUM'].forEach(function (filter) {
             $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
         });
 
@@ -335,7 +357,7 @@ $(function () {
 
     $('#reset').click(function () {
         // reset all
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM', 'OBSNUM'].forEach(function (filter) {
             $('#' + filter.toLowerCase()).val('');
         });
         ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {

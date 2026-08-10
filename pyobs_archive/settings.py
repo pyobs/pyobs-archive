@@ -21,12 +21,27 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'p0t3i91%r1^=tly+y8e_t!h7-_rkvt+0&muc5v2j4d)l%$(rfa'
+# The old value that used to live here was committed to a public repo and must never be used
+# again. Set SECRET_KEY in the environment for any real deployment; this fallback is for local
+# development only.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 'django-insecure-dev-only-3f1a9c7e2b6d4f80a1c5e9b3d7f2a6c8e0b4d9f1a3c5e7b9d1f3a5c7e9b1d3f5'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'false').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
+
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+
+# The bundled nginx.conf.example sets "X-Forwarded-Proto: $scheme" and is the only public
+# entry point (gunicorn itself is not published), so it's safe to trust this header to tell
+# Django the original request was HTTPS. Without this, request.build_absolute_uri() would
+# always use "http://", causing mixed-content issues behind a TLS-terminating proxy.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Application definition
 
@@ -41,17 +56,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'oauth2_provider',
     'pyobs_archive.api',
     'pyobs_archive.authentication',
     'pyobs_archive.frontend'
 ]
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'pyobs_archive.authentication.authentication.RemoteTokenAuthentication'
-    ],
-}
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -95,12 +104,12 @@ WSGI_APPLICATION = 'pyobs_archive.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'db',
-        'PORT': 5432,
+        'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('SQL_DATABASE', os.path.join(BASE_DIR, 'db.sqlite3')),
+        'USER': os.environ.get('SQL_USER', 'user'),
+        'PASSWORD': os.environ.get('SQL_PASSWORD', 'password'),
+        'HOST': os.environ.get('SQL_HOST', 'localhost'),
+        'PORT': os.environ.get('SQL_PORT', '5432'),
     }
 }
 
@@ -138,19 +147,29 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 STATIC_URL = '/static/'
-STATIC_ROOT = '/static/'
+STATIC_ROOT = os.environ.get('STATIC_ROOT', '/static/')
 
 # allow access from other pages, e.g. portal
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
 
 # logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s'
+        }
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            "formatter": "verbose",
         },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
     'loggers': {
         'django': {
@@ -180,9 +199,9 @@ LOGOUT_REDIRECT_URL = '/'
 
 # App settings
 LOGO_LINK = 'https://pyobs.github.io'
-ARCHIVE_ROOT = '/data/'
-PATH_FORMATTER = '{SITEID}/{DAY-OBS}/'
-FILENAME_FORMATTER = None
+ARCHIVE_ROOT = os.environ.get('ARCHIVE_ROOT', '/data/')
+PATH_FORMATTER = os.environ.get('PATH_FORMATTER', '{SITEID}/{DAY-OBS}/')
+FILENAME_FORMATTER = os.environ.get('FILENAME_FORMATTER') or None
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024

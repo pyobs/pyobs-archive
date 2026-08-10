@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 class Frame(models.Model):
     """A single image."""
-    basename = models.CharField('Name of file', max_length=50, db_index=True)
+    basename = models.CharField('Name of file', max_length=50, unique=True)
     path = models.CharField('Path to file', max_length=100)
     SITEID = models.CharField('Site of observation', max_length=10, db_index=True)
     TELID = models.CharField('Telescope used for observation', max_length=5, db_index=True)
@@ -49,9 +49,10 @@ class Frame(models.Model):
     YORGSUBF = models.IntegerField('Y offset of image in unbinned pixels', default=0)
     width = models.IntegerField('Width of image in binned pixels')
     height = models.IntegerField('Height of image in binned pixels')
-    DATAMEAN = models.FloatField('Mean data value', null=True, default=True)
+    DATAMEAN = models.FloatField('Mean data value', null=True, default=None)
     related = models.ManyToManyField("self", symmetrical=False)
     REQNUM = models.CharField('Unique number for request', max_length=30, null=True, default=None)
+    OBSNUM = models.CharField('Observation number (per-night)', max_length=30, null=True, default=None)
 
     def __str__(self):
         return self.basename
@@ -82,7 +83,7 @@ class Frame(models.Model):
                     'TEL-RA', 'TEL-DEC', 'TEL-ALT', 'TEL-AZ', 'TEL-FOCU',
                     'SUNALT', 'SUNDIST', 'MOONALT', 'MOONDIST', 'MOONFRAC',
                     'IMAGETYP', 'XORGSUBF', 'YORGSUBF', 'OBJECT', 'EXPTIME',
-                    'FILTER', 'DATAMEAN', 'REQNUM']
+                    'FILTER', 'DATAMEAN', 'REQNUM', 'OBSNUM']
         for k in keywords:
             self._set_header(header, k)
 
@@ -123,7 +124,8 @@ class Frame(models.Model):
     def get_info(self):
         # init info and copy some fields
         info = {k: getattr(self, k) for k in ['id', 'basename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
-                                              'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME', 'RLEVEL']}
+                                              'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME',
+                                              'REQNUM', 'OBSNUM']}
 
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
@@ -197,15 +199,22 @@ class Frame(models.Model):
             name = tmp[:tmp.find('.')] if '.' in tmp else tmp
         log.info('Formatted filename to %s.', name)
 
+        # PATH_FORMATTER/FILENAME_FORMATTER pull their values from the FITS header, so make sure
+        # neither can push the file outside of ARCHIVE_ROOT (via "..", an absolute path, or a
+        # separator hiding in a header value)
+        if not name or os.path.basename(name) != name or name in ('.', '..'):
+            raise ValueError('Invalid filename derived from FITS header: %r' % name)
+        archive_root = os.path.realpath(root)
+        file_path = os.path.realpath(os.path.join(archive_root, path))
+        if os.path.commonpath([archive_root, file_path]) != archive_root:
+            raise ValueError('Formatted path escapes ARCHIVE_ROOT: %r' % path)
+
         # create new filename and set it in header
         out_filename = name + '.fits.fz'
         fits_file['SCI'].header['FNAME'] = name
 
         # find or create image
-        if Frame.objects.filter(basename=name).exists():
-            img = Frame.objects.get(basename=name)
-        else:
-            img = Frame(basename=name)
+        img = Frame.objects.filter(basename=name).first() or Frame(basename=name)
 
         # set headers
         img.path = path
@@ -219,26 +228,63 @@ class Frame(models.Model):
         img.link_related(fits_file['SCI'].header)
 
         # create path if necessary
-        file_path = os.path.join(root, path)
         if not os.path.exists(file_path):
             os.makedirs(file_path)
 
         # write FITS file to byte stream and close
         with io.BytesIO() as bio:
-            log.info('Writing file...')
+            log.info('Writing file to buffer...')
             fits_file.writeto(bio)
             fits_file.close()
+            buffer = bytes(bio.getbuffer())
+            log.info(f"Wrote {len(buffer)} bytes.")
 
-            # pipe data into fpack
-            log.info('Fpacking file...')
-            proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
-                                    stdin=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    stdout=open(os.path.join(file_path, out_filename), 'wb'))
-            proc.communicate(bytes(bio.getbuffer()))
+        # pipe data into fpack
+        log.info('Fpacking file...')
+        proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
+                                stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+        data, _ = proc.communicate(buffer)
+        log.info(f"Packed file into {len(data)} bytes.")
 
-            # all good store it
-            if proc.returncode == 0:
-                log.info('Stored image as %s...', img.basename)
-                return img.basename
-            else:
-                raise ValueError('Could not fpack file %s.' % filename)
+        # write file
+        with open(os.path.join(file_path, out_filename), 'wb') as f:
+            f.write(data)
+
+        # all good store it
+        if proc.returncode == 0:
+            log.info('Stored image as %s...', out_filename)
+            return img.basename
+        else:
+            raise ValueError('Could not fpack file %s.' % filename)
+
+    @property
+    def filename(self):
+        root = settings.ARCHIVE_ROOT
+        return os.path.join(root, self.path, self.basename + '.fits.fz')
+
+    def delete_file(self):
+        # delete file
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
+
+    def check_file(self) -> bool:
+        # get filename
+        filename = self.filename
+
+        # does it exist?
+        if not os.path.exists(filename):
+            return False
+
+        # check file size
+        if os.path.getsize(filename) == 0:
+            return False
+
+        # try to get header
+        try:
+            fits.getheader(filename)
+        except Exception:
+            return False
+
+        # all good
+        return True
