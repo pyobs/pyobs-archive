@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+db.sqlite3
+staticfiles/
+.idea/
+.mypy_cache/
+pyobs_archive/local_settings.py
