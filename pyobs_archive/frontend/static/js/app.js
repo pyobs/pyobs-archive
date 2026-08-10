@@ -186,6 +186,7 @@ $(function () {
         params.start = $('#date-start').html();
         params.end = $('#date-end').html();
         params.REQNUM = $('#reqnum').val();
+        params.OBSNUM = $('#obsnum').val();
         return params;
     }
 
@@ -307,7 +308,7 @@ $(function () {
         let params = new URLSearchParams(window.location.search);
 
         // text values
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM', 'OBSNUM'].forEach(function (filter) {
             $('#' + filter.toLowerCase()).val(params.has(filter) ? params.get(filter) : '');
         });
 
@@ -335,7 +336,7 @@ $(function () {
 
     $('#reset').click(function () {
         // reset all
-        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM'].forEach(function (filter) {
+        ['night', 'basename', 'OBJECT', 'EXPTIME', 'RA', 'DEC', 'REQNUM', 'OBSNUM'].forEach(function (filter) {
             $('#' + filter.toLowerCase()).val('');
         });
         ['binning', 'IMAGETYPE', 'RLEVEL', 'SITE', 'TELESCOPE', 'INSTRUMENT', 'FILTER'].forEach(function (filter) {
