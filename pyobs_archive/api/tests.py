@@ -2,9 +2,10 @@ import tempfile
 
 from astropy.io import fits
 from django.test import TestCase, RequestFactory
+from rest_framework.exceptions import ParseError
 
 from pyobs_archive.api.models import Frame
-from pyobs_archive.api.views import filter_frames
+from pyobs_archive.api.views import filter_frames, sort_frames
 
 
 def _header(**overrides):
@@ -134,6 +135,42 @@ class FilterFramesTests(TestCase):
     def test_filter_by_binning(self):
         result = self._filtered(binning='2x2')
         self.assertEqual(list(result), [self.frame_b])
+
+
+class SortFramesTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.frame_a = Frame.objects.create(
+            basename='frame_a', path='p', SITEID='site1', TELID='tel1', INSTRUME='inst1',
+            IMAGETYP='object', DATE_OBS='2024-01-15T10:00:00Z', night='2024-01-15',
+            OBJECT='M31', EXPTIME=30.0, FILTER='clear', RLEVEL=0,
+            XBINNING=1, YBINNING=1, width=100, height=100,
+        )
+        self.frame_b = Frame.objects.create(
+            basename='frame_b', path='p', SITEID='site2', TELID='tel2', INSTRUME='inst2',
+            IMAGETYP='bias', DATE_OBS='2024-01-16T10:00:00Z', night='2024-01-16',
+            OBJECT='M42', EXPTIME=0.0, FILTER=None, RLEVEL=1,
+            XBINNING=2, YBINNING=2, width=100, height=100,
+        )
+
+    def _sorted(self, **params):
+        request = self.factory.get('/frames/', params)
+        return sort_frames(Frame.objects.all(), request)
+
+    def test_default_sort_is_date_obs_ascending(self):
+        self.assertEqual(list(self._sorted()), [self.frame_a, self.frame_b])
+
+    def test_sort_desc(self):
+        result = self._sorted(sort='DATE_OBS', order='desc')
+        self.assertEqual(list(result), [self.frame_b, self.frame_a])
+
+    def test_unknown_sort_field_raises_parse_error_not_500(self):
+        with self.assertRaises(ParseError):
+            self._sorted(sort='; DROP TABLE api_frame')
+
+    def test_unknown_order_raises_parse_error(self):
+        with self.assertRaises(ParseError):
+            self._sorted(order='sideways')
 
 
 class FrameIngestPathSafetyTests(TestCase):
