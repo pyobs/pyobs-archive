@@ -49,7 +49,7 @@ class Frame(models.Model):
     YORGSUBF = models.IntegerField('Y offset of image in unbinned pixels', default=0)
     width = models.IntegerField('Width of image in binned pixels')
     height = models.IntegerField('Height of image in binned pixels')
-    DATAMEAN = models.FloatField('Mean data value', null=True, default=True)
+    DATAMEAN = models.FloatField('Mean data value', null=True, default=None)
     related = models.ManyToManyField("self", symmetrical=False)
     REQNUM = models.CharField('Unique number for request', max_length=30, null=True, default=None)
     OBSNUM = models.CharField('Observation number (per-night)', max_length=30, null=True, default=None)
