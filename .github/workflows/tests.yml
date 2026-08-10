@@ -1,0 +1,35 @@
+name: Tests
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.11"
+
+      - name: Install packages
+        run: uv sync
+
+      - name: Use sqlite for tests
+        run: |
+          cat > pyobs_archive/local_settings.py <<'EOF'
+          DATABASES = {
+              'default': {
+                  'ENGINE': 'django.db.backends.sqlite3',
+                  'NAME': ':memory:',
+              }
+          }
+          EOF
+
+      - name: Run tests
+        run: uv run python manage.py test
