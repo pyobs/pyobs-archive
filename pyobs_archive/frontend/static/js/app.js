@@ -83,7 +83,14 @@ $(function () {
         sortName: 'DATE_OBS',
         sortOrder: 'desc',
         showRefresh: true,
-        iconsPrefix: 'fas',
+        iconsPrefix: 'bi',
+        icons: {
+            refresh: 'bi-arrow-clockwise',
+            columns: 'bi-list-columns',
+            detailOpen: 'bi-plus',
+            detailClose: 'bi-dash',
+            export: 'bi-download'
+        },
         showColumns: true,
         queryParams: queryParams,
         toolbar: '#toolbar',
@@ -132,11 +139,17 @@ $(function () {
         }]
     });
 
+    // bootstrap-table still emits data-toggle="dropdown" (Bootstrap 3/4); Bootstrap 5 needs data-bs-toggle
+    $('.fixed-table-toolbar').find('[data-toggle="dropdown"]').attr('data-bs-toggle', 'dropdown');
+
     function on_check() {
 
-        // update download button
+        // update download button, counting selections across the main table and any expanded detail tables
         let downloadBtn = $('#downloadBtn');
-        var rows = $('#table').bootstrapTable('getSelections').length;
+        var rows = 0;
+        $('table.image-data').each(function () {
+            rows += $(this).bootstrapTable('getSelections').length;
+        });
         downloadBtn.html('Download selected (' + rows + ')');
     }
 
@@ -236,7 +249,11 @@ $(function () {
                 ],
                 data: data,
                 clickToSelect: true,
-                checkBoxHeader: false
+                checkBoxHeader: false,
+                onCheck: on_check,
+                onUncheck: on_check,
+                onCheckAll: on_check,
+                onUncheckAll: on_check
             });
 
             // image
@@ -254,7 +271,7 @@ $(function () {
 
                     // show modal window
                     $('#headerModalBody').html(table);
-                    $('#headerModal').modal();
+                    bootstrap.Modal.getOrCreateInstance('#headerModal').show();
                 });
             });
         });

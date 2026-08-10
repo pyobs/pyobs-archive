@@ -275,7 +275,6 @@ def preview_view(request, frame_id):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
 
     # get frame and filename
     frame, filename = _frame(frame_id)
@@ -301,7 +300,7 @@ def preview_view(request, frame_id):
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
 
     # draw image
-    ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cm.get_cmap('Greys_r'))
+    ax.imshow(data, vmin=vmin, vmax=vmax, cmap='Greys_r')
 
     # write to buffer and return it
     with io.BytesIO() as bio:
