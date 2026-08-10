@@ -199,6 +199,16 @@ class Frame(models.Model):
             name = tmp[:tmp.find('.')] if '.' in tmp else tmp
         log.info('Formatted filename to %s.', name)
 
+        # PATH_FORMATTER/FILENAME_FORMATTER pull their values from the FITS header, so make sure
+        # neither can push the file outside of ARCHIVE_ROOT (via "..", an absolute path, or a
+        # separator hiding in a header value)
+        if not name or os.path.basename(name) != name or name in ('.', '..'):
+            raise ValueError('Invalid filename derived from FITS header: %r' % name)
+        archive_root = os.path.realpath(root)
+        file_path = os.path.realpath(os.path.join(archive_root, path))
+        if os.path.commonpath([archive_root, file_path]) != archive_root:
+            raise ValueError('Formatted path escapes ARCHIVE_ROOT: %r' % path)
+
         # create new filename and set it in header
         out_filename = name + '.fits.fz'
         fits_file['SCI'].header['FNAME'] = name
@@ -218,7 +228,6 @@ class Frame(models.Model):
         img.link_related(fits_file['SCI'].header)
 
         # create path if necessary
-        file_path = os.path.join(root, path)
         if not os.path.exists(file_path):
             os.makedirs(file_path)
 
