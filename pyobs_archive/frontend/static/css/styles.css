@@ -1,62 +1,13 @@
-@font-face {
-    font-family: 'Alegreya';
-    src: local('Alegreya'),
-    local('Alegreya-Regular'),
-    url('../fonts/Alegreya-Regular.ttf');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Alegreya';
-    src: local('Alegreya-Bold'),
-    url('../fonts/Alegreya-Bold.ttf');
-    font-weight: bold;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Roboto';
-    src: local('Roboto') local('Roboto-Regular'),
-    url('../admin/fonts/Roboto-Bold.ttf');
-    font-weight: bold;
-    font-style: normal;
-}
-
 html, body {
     height: 100%;
 }
 
-body {
-    font-family: 'Roboto', serif;
-}
-
-h1, h2, h3, h4, h5, h6, th, nav, label {
-    font-family: 'Alegreya', serif;
-}
-
-.navbar-brand {
-    color: white;
-    font-size: x-large;
-    margin-right: 1em;
-}
-
-#wrap {
-    min-height: 100%;
-}
-
-#main {
-    margin-top: 20px;
-    overflow: auto;
-    padding-bottom: 50px; /* this needs to be bigger than footer height*/
-}
-
 .datetext {
     vertical-align: bottom;
-    background: #fff;
+    background: #1a1d21;
     cursor: pointer;
     padding: 5px 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #2d3035;
     margin-bottom: 10px;
     width: 100%;
 }
@@ -79,30 +30,97 @@ h1, h2, h3, h4, h5, h6, th, nav, label {
     width: 100%;
     height: 100%;
     z-index: 9999;
-    background: url('../img/ajax-loader.gif') center no-repeat #fff;
+    background: url('../img/ajax-loader.gif') center no-repeat #1a1d21;
 }
 
 table {
     font-size: small;
 }
 
-footer {
-    background-color: black;
-    color: grey;
-    text-align: center;
-    position: relative;
-    margin-top: -40px; /* negative value of footer height */
-    height: 40px;
-    clear: both;
-    padding-top: 0.5em;
-    font-size: smaller;
+/* daterangepicker.css (vendor, pre-dates the dark theme) hardcodes a white popup
+   background but leaves text color to inherit from the page, which is light grey
+   under data-bs-theme="dark" - grey-on-white. Override to match the sidebar. */
+.daterangepicker {
+    background-color: #1a1d21;
+    border: 1px solid #2d3035;
+    color: #dee2e6;
 }
-
-.loginform {
-  min-width: 500px;
-  position: absolute;
-  text-align: center;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.daterangepicker:before {
+    border-bottom-color: #2d3035;
+}
+.daterangepicker:after {
+    border-bottom-color: #1a1d21;
+}
+.daterangepicker .calendar-table {
+    background-color: #1a1d21;
+    border-color: #1a1d21;
+}
+.daterangepicker .calendar-table th,
+.daterangepicker .calendar-table td {
+    color: #dee2e6;
+}
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover {
+    background-color: #2d3035;
+    color: #f8f9fa;
+}
+.daterangepicker td.week,
+.daterangepicker th.week {
+    color: #6c757d;
+}
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+    background-color: #1a1d21;
+    color: #495057;
+}
+.daterangepicker td.in-range {
+    background-color: #0d6efd20;
+    color: #dee2e6;
+}
+.daterangepicker td.active,
+.daterangepicker td.active:hover {
+    background-color: #0d6efd;
+    color: #fff;
+}
+.daterangepicker td.disabled,
+.daterangepicker option.disabled {
+    color: #495057;
+}
+.daterangepicker select.monthselect,
+.daterangepicker select.yearselect,
+.daterangepicker select.hourselect,
+.daterangepicker select.minuteselect,
+.daterangepicker select.secondselect,
+.daterangepicker select.ampmselect {
+    background-color: #2d3035;
+    color: #dee2e6;
+    border: 1px solid #495057;
+}
+.daterangepicker .calendar-time select.disabled {
+    color: #495057;
+}
+.daterangepicker .drp-buttons {
+    border-top: 1px solid #2d3035;
+    color: #dee2e6;
+}
+.daterangepicker .drp-selected {
+    color: #dee2e6;
+}
+.daterangepicker.show-ranges.single.rtl .drp-calendar.left,
+.daterangepicker.show-ranges.single.ltr .drp-calendar.left,
+.daterangepicker.show-ranges.rtl .drp-calendar.right,
+.daterangepicker.show-ranges.ltr .drp-calendar.left {
+    border-color: #2d3035;
+}
+.daterangepicker .ranges li {
+    color: #dee2e6;
+}
+.daterangepicker .ranges li:hover {
+    background-color: #2d3035;
+}
+.daterangepicker .ranges li.active {
+    background-color: #0d6efd;
+    color: #fff;
 }
