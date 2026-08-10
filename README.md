@@ -3,77 +3,66 @@
 A webservice for an archive for astronomical images. Implements most of the interfaces
 defined by [Las Cumbres Observatory](https://developers.lco.global/#archive).
 
-## Quick start
+## Configuration
 
+All settings are controlled by environment variables. Copy `pyobs_archive/local_settings.example.py` to
+`pyobs_archive/local_settings.py` for local overrides, or set the following in your environment / `.env` file:
 
-Create a docker-compose.yaml:
+| Variable | Default | Description |
+|---|---|---|
+| `SECRET_KEY` | dev-only fallback | Django secret key — **change in production** |
+| `DEBUG` | `false` | Set to `true` for development |
+| `ALLOWED_HOSTS` | (empty) | Comma-separated list of allowed hosts |
+| `CSRF_TRUSTED_ORIGINS` | (empty) | Comma-separated list of trusted origins |
+| `CORS_ALLOWED_ORIGINS` | (empty) | Comma-separated list of origins allowed to make cross-origin requests to the API |
+| `SQL_ENGINE` | `django.db.backends.sqlite3` | Database backend |
+| `SQL_DATABASE` | `db.sqlite3` | Database name / path |
+| `SQL_USER` | `user` | Database user |
+| `SQL_PASSWORD` | `password` | Database password |
+| `SQL_HOST` | `localhost` | Database host |
+| `SQL_PORT` | `5432` | Database port |
+| `STATIC_ROOT` | `/static/` | Directory for collected static files |
+| `ARCHIVE_ROOT` | `/data/` | Directory FITS files are stored in and served from |
+| `PATH_FORMATTER` | `{SITEID}/{DAY-OBS}/` | Format string for the sub-path files are stored under, within `ARCHIVE_ROOT` |
+| `FILENAME_FORMATTER` | (empty, use the header `FNAME`) | Format string for the archived filename |
+| `DJANGO_LOG_LEVEL` | `INFO` | Log level for Django's logger |
+| `OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET` | (empty) | OAuth login (optional) |
+| `OAUTH_TOKEN_URL` / `OAUTH_PROFILE_URL` | `http://localhost/...` | OAuth login (optional) |
 
-    version: '3'
-    
-    services:
-      db:
-        image: postgres
-        volumes:
-          - pgdata:/var/lib/postgresql/data
-      web:
-        image: thusser/pyobs-archive
-        command: gunicorn --bind 0.0.0.0:8000 pyobs_archive.wsgi
-        environment:
-          - SECRET_KEY=change-me-to-a-long-random-string
-          - ALLOWED_HOSTS=your.domain.here
-        ports:
-          - "8000:8000"
-        volumes:
-          - data:/data/
-        depends_on:
-          - db
-    volumes:
-      pgdata:
-      
-Adapt ports and volumes to your needs. Run the containers:
+## Running
 
-    docker-compose up -d
-    
-After it is running, get a shell inside the container:
+### Development
 
-    docker exec -it pyobs-archive_web_1 /bin/bash
-    
-Inside, run migrate:
+```bash
+uv run manage.py migrate
+uv run manage.py createsuperuser
+uv run manage.py runserver
+```
 
-    python manage.py migrate
-    
-And create a superuser for yourself:
+With no configuration at all, this runs against a local SQLite database. Open `http://localhost:8000/` and
+log in with the superuser you created.
 
-    python manage.py createsuperuser
-    
-Create another user for ingesting new images (in this case, we call it "pyobs") and create the token 
+Create another user for ingesting new images (in this case, we call it "pyobs") and create the token
 that must be used when sending new images:
 
-    python manager.py createsuperuser
-    python manage.py drf_create_token pyobs
+    uv run manage.py createsuperuser
+    uv run manage.py drf_create_token pyobs
 
-Now you can open a browser at http://localhost:8000/ and log in to the homepage.
+### Docker Compose
 
-## Development environment
+A production-ready setup with PostgreSQL and nginx is provided in [`docker-compose.yaml`](docker-compose.yaml).
+The application image is pulled from `ghcr.io/pyobs/pyobs/pyobs-archive:latest`. Copy
+[`.env.example`](.env.example) to `.env` and [`nginx.conf.example`](nginx.conf.example) to `nginx.conf`, then
+adjust the values — in particular, bind-mount your real FITS storage over the `archive_data` volume.
 
-For development, it might be easier to not use Docker. In that case, create a 
-pyobs_archive/local_settings.py and override settings in the settings.py, like this:
+The UI is served by nginx on port **8098**.
 
-    import os
-    
-    # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-    
-    ARCHIVE_ROOT = '/opt/pyobs/data/'
-    PATH_FORMATTER = '{SITEID}/{TELID}/{INSTRUME}/'
-    FILENAME_FORMATTER = None,
+```bash
+docker compose up -d
+docker compose exec web uv run manage.py createsuperuser        # yourself
+docker compose exec web uv run manage.py createsuperuser        # e.g. "pyobs", for ingest
+docker compose exec web uv run manage.py drf_create_token pyobs
+```
 
 
 ## Changelog
@@ -104,8 +93,7 @@ JavaScript, CSS & Co.:
 - [jQuery.typeWatch](https://github.com/dennyferra/TypeWatch) for handling user input.
 - [Bootstrap](https://getbootstrap.com/) for the UI.
 - [Bootstrap Table](https://bootstrap-table.com/) for showing the data as table.
-- [Font Awesome](https://fontawesome.com/) for icons.
-- [webpack](https://webpack.js.org/) for bundling all resources.
+- [Bootstrap Icons](https://icons.getbootstrap.com/) for icons.
 
 Thanks
 ------
