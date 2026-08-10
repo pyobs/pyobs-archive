@@ -6,13 +6,15 @@ from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 import logging
 
+from pyobs_archive.authentication.crypto import EncryptedTextField
+
 logger = logging.getLogger(__name__)
 
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    access_token = models.CharField(max_length=255, default='')
-    refresh_token = models.CharField(max_length=255, default='')
+    access_token = EncryptedTextField(default='')
+    refresh_token = EncryptedTextField(default='')
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
