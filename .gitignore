@@ -7,3 +7,4 @@ staticfiles/
 .idea/
 .mypy_cache/
 pyobs_archive/local_settings.py
+REVIEW_TODO.md
