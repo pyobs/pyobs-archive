@@ -112,18 +112,7 @@
         </div>
 
         <div class="p-2 flex-grow-1 overflow-auto">
-            <div class="px-2 py-2">
-                <a href="{% url 'index' %}" class="sidebar-link d-flex align-items-center gap-2 px-2 py-2 active">
-                    <i class="bi bi-images" style="font-size:0.8rem"></i>
-                    Archive
-                </a>
-                {% if user.is_staff %}
-                <a href="/admin/" class="sidebar-link d-flex align-items-center gap-2 px-2 py-2">
-                    <i class="bi bi-gear" style="font-size:0.8rem"></i>
-                    Django Admin
-                </a>
-                {% endif %}
-            </div>
+            {% block sidebar_content %}{% endblock %}
         </div>
 
         <div class="p-2 border-top border-secondary-subtle">
