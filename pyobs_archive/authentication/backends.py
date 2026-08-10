@@ -12,8 +12,6 @@ class OAuth2Backend(object):
     """
 
     def authenticate(self, request, username=None, password=None):
-        if username == 'eng':
-            return None  # disable eng account
         response = requests.post(
             settings.OAUTH_CLIENT['TOKEN_URL'],
             data={
@@ -25,7 +23,7 @@ class OAuth2Backend(object):
             }
         )
         if response.status_code == 200:
-            user, _ = User.objects.get_or_create(username=username)
+            user, _ = User.objects.get_or_create(username=username, defaults={'is_active': False})
             Profile.objects.update_or_create(
                 user=user,
                 defaults={
@@ -33,6 +31,8 @@ class OAuth2Backend(object):
                     'refresh_token': response.json()['refresh_token']
                 }
             )
+            if not user.is_active:
+                return None
             return user
         return None
 
@@ -62,11 +62,13 @@ class BearerAuthentication(authentication.BaseAuthentication):
         if not response.status_code == 200:
             raise exceptions.AuthenticationFailed('No Such User')
 
-        user, _ = User.objects.get_or_create(username=response.json()['email'])
+        user, _ = User.objects.get_or_create(username=response.json()['email'], defaults={'is_active': False})
         Profile.objects.update_or_create(
             user=user,
             defaults={
                 'access_token': bearer,
             }
         )
+        if not user.is_active:
+            raise exceptions.AuthenticationFailed('Account pending activation')
         return (user, None)
