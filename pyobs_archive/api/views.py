@@ -118,6 +118,9 @@ def filter_frames(data, request):
     f = request.GET.get('REQNUM', '').strip()
     if f != '':
         data = data.filter(REQNUM=f)
+    f = request.GET.get('OBSNUM', '').strip()
+    if f != '':
+        data = data.filter(OBSNUM=f)
 
     # date
     start = request.GET.get('start', '').strip()
