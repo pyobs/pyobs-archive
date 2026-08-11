@@ -37,6 +37,17 @@ table {
     font-size: small;
 }
 
+/* bootstrap-table.min.css (vendor) hardcodes a white background and dark dots for the
+   refresh/sort/pagination loading overlay - override to match the dark theme. */
+.bootstrap-table .fixed-table-loading {
+    background: #1a1d21;
+}
+.bootstrap-table .fixed-table-loading .loading-wrap .animation-dot,
+.bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::after,
+.bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::before {
+    background: #dee2e6;
+}
+
 /* daterangepicker.css (vendor, pre-dates the dark theme) hardcodes a white popup
    background but leaves text color to inherit from the page, which is light grey
    under data-bs-theme="dark" - grey-on-white. Override to match the sidebar. */
