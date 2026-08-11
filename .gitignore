@@ -9,5 +9,4 @@ staticfiles/
 pyobs_archive/local_settings.py
 REVIEW_TODO.md
 .env
-nginx.conf
 archive-data/
