@@ -2,12 +2,38 @@ html, body {
     height: 100%;
 }
 
+/* Theme-aware tokens for the main-content area (the sidebar/mobile navbar are pinned to dark
+   via data-bs-theme="dark" in base.html and don't need these - they keep their own hardcoded
+   hex values). */
+:root {
+    --pyobs-surface-bg: #ffffff;
+    --pyobs-surface-border: #dee2e6;
+    --pyobs-surface-text: #212529;
+    --pyobs-surface-text-muted: #6c757d;
+    --pyobs-surface-text-disabled: #adb5bd;
+    --pyobs-surface-hover-bg: #e9ecef;
+    --pyobs-loading-dot: #495057;
+    --pyobs-accent-bg: #0d6efd20;
+    --pyobs-accent-text: #0a58ca;
+}
+[data-bs-theme="dark"] {
+    --pyobs-surface-bg: #1a1d21;
+    --pyobs-surface-border: #2d3035;
+    --pyobs-surface-text: #dee2e6;
+    --pyobs-surface-text-muted: #6c757d;
+    --pyobs-surface-text-disabled: #495057;
+    --pyobs-surface-hover-bg: #2d3035;
+    --pyobs-loading-dot: #dee2e6;
+    --pyobs-accent-bg: #0d6efd20;
+    --pyobs-accent-text: #6ea8fe;
+}
+
 .datetext {
     vertical-align: bottom;
-    background: #1a1d21;
+    background: var(--pyobs-surface-bg);
     cursor: pointer;
     padding: 5px 10px;
-    border: 1px solid #2d3035;
+    border: 1px solid var(--pyobs-surface-border);
     margin-bottom: 10px;
     width: 100%;
 }
@@ -30,7 +56,7 @@ html, body {
     width: 100%;
     height: 100%;
     z-index: 9999;
-    background: url('../img/ajax-loader.gif') center no-repeat #1a1d21;
+    background: url('../img/ajax-loader.gif') center no-repeat var(--pyobs-surface-bg);
 }
 
 table {
@@ -38,57 +64,57 @@ table {
 }
 
 /* bootstrap-table.min.css (vendor) hardcodes a white background and dark dots for the
-   refresh/sort/pagination loading overlay - override to match the dark theme. */
+   refresh/sort/pagination loading overlay - override to match the current theme. */
 .bootstrap-table .fixed-table-loading {
-    background: #1a1d21;
+    background: var(--pyobs-surface-bg);
 }
 .bootstrap-table .fixed-table-loading .loading-wrap .animation-dot,
 .bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::after,
 .bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::before {
-    background: #dee2e6;
+    background: var(--pyobs-loading-dot);
 }
 
-/* daterangepicker.css (vendor, pre-dates the dark theme) hardcodes a white popup
-   background but leaves text color to inherit from the page, which is light grey
-   under data-bs-theme="dark" - grey-on-white. Override to match the sidebar. */
+/* daterangepicker.css (vendor, pre-dates the theme switcher) hardcodes a white popup
+   background but leaves text color to inherit from the page, which is grey-on-white
+   under data-bs-theme="dark" without an override. Override to match the current theme. */
 .daterangepicker {
-    background-color: #1a1d21;
-    border: 1px solid #2d3035;
-    color: #dee2e6;
+    background-color: var(--pyobs-surface-bg);
+    border: 1px solid var(--pyobs-surface-border);
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker:before {
-    border-bottom-color: #2d3035;
+    border-bottom-color: var(--pyobs-surface-border);
 }
 .daterangepicker:after {
-    border-bottom-color: #1a1d21;
+    border-bottom-color: var(--pyobs-surface-bg);
 }
 .daterangepicker .calendar-table {
-    background-color: #1a1d21;
-    border-color: #1a1d21;
+    background-color: var(--pyobs-surface-bg);
+    border-color: var(--pyobs-surface-bg);
 }
 .daterangepicker .calendar-table th,
 .daterangepicker .calendar-table td {
-    color: #dee2e6;
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker td.available:hover,
 .daterangepicker th.available:hover {
-    background-color: #2d3035;
-    color: #f8f9fa;
+    background-color: var(--pyobs-surface-hover-bg);
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker td.week,
 .daterangepicker th.week {
-    color: #6c757d;
+    color: var(--pyobs-surface-text-muted);
 }
 .daterangepicker td.off,
 .daterangepicker td.off.in-range,
 .daterangepicker td.off.start-date,
 .daterangepicker td.off.end-date {
-    background-color: #1a1d21;
-    color: #495057;
+    background-color: var(--pyobs-surface-bg);
+    color: var(--pyobs-surface-text-disabled);
 }
 .daterangepicker td.in-range {
     background-color: #0d6efd20;
-    color: #dee2e6;
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker td.active,
 .daterangepicker td.active:hover {
@@ -97,7 +123,7 @@ table {
 }
 .daterangepicker td.disabled,
 .daterangepicker option.disabled {
-    color: #495057;
+    color: var(--pyobs-surface-text-disabled);
 }
 .daterangepicker select.monthselect,
 .daterangepicker select.yearselect,
@@ -105,31 +131,31 @@ table {
 .daterangepicker select.minuteselect,
 .daterangepicker select.secondselect,
 .daterangepicker select.ampmselect {
-    background-color: #2d3035;
-    color: #dee2e6;
-    border: 1px solid #495057;
+    background-color: var(--pyobs-surface-hover-bg);
+    color: var(--pyobs-surface-text);
+    border: 1px solid var(--pyobs-surface-border);
 }
 .daterangepicker .calendar-time select.disabled {
-    color: #495057;
+    color: var(--pyobs-surface-text-disabled);
 }
 .daterangepicker .drp-buttons {
-    border-top: 1px solid #2d3035;
-    color: #dee2e6;
+    border-top: 1px solid var(--pyobs-surface-border);
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker .drp-selected {
-    color: #dee2e6;
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker.show-ranges.single.rtl .drp-calendar.left,
 .daterangepicker.show-ranges.single.ltr .drp-calendar.left,
 .daterangepicker.show-ranges.rtl .drp-calendar.right,
 .daterangepicker.show-ranges.ltr .drp-calendar.left {
-    border-color: #2d3035;
+    border-color: var(--pyobs-surface-border);
 }
 .daterangepicker .ranges li {
-    color: #dee2e6;
+    color: var(--pyobs-surface-text);
 }
 .daterangepicker .ranges li:hover {
-    background-color: #2d3035;
+    background-color: var(--pyobs-surface-hover-bg);
 }
 .daterangepicker .ranges li.active {
     background-color: #0d6efd;
