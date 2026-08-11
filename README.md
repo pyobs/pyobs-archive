@@ -50,12 +50,13 @@ that must be used when sending new images:
 
 ### Docker Compose
 
-A production-ready setup with PostgreSQL and nginx is provided in [`docker-compose.yaml`](docker-compose.yaml).
-The application image is pulled from `ghcr.io/pyobs/pyobs/pyobs-archive:latest`. Copy
-[`.env.example`](.env.example) to `.env` and [`nginx.conf.example`](nginx.conf.example) to `nginx.conf`, then
-adjust the values — in particular, bind-mount your real FITS storage over the `archive_data` volume.
+A production-ready setup with PostgreSQL is provided in [`docker-compose.yaml`](docker-compose.yaml). Static
+files are served directly by gunicorn via [Whitenoise](https://whitenoise.readthedocs.io/), so no separate
+web server container is needed — put this behind your own reverse proxy for TLS termination. The application
+image is pulled from `ghcr.io/pyobs/pyobs/pyobs-archive:latest`. Copy [`.env.example`](.env.example) to `.env`
+and adjust the values — in particular, bind-mount your real FITS storage over the `archive_data` volume.
 
-The UI is served by nginx on port **8098**.
+The app is served on port **8098**.
 
 ```bash
 docker compose up -d

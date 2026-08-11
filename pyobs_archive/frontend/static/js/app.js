@@ -404,5 +404,4 @@ $(function () {
     $('#lookup-btn').click(function () {
         lookup();
     });
-//# sourceMappingURL=lookup.js.map
 });
