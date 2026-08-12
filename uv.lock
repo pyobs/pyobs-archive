@@ -1040,6 +1040,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pyjwt"
+version = "2.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/81/58d0ac84e1ef3a3843791d6954d94c0b33d526c75eeb1efbce9d0a4c4077/pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423", size = 107515, upload-time = "2026-05-21T19:54:36.618Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/5e/ecf12fdb62546d64385c158514e9b2b671f7832108ef2ecd2020ce0af2d1/pyjwt-2.13.0-py3-none-any.whl", hash = "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728", size = 31274, upload-time = "2026-05-21T19:54:35.362Z" },
+]
+
+[package.optional-dependencies]
+crypto = [
+    { name = "cryptography" },
+]
+
+[[package]]
 name = "pyobs-archive"
 version = "2.0.0.dev5"
 source = { virtual = "." }
@@ -1056,6 +1070,7 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "psycopg2-binary" },
+    { name = "pyobs-auth" },
     { name = "whitenoise" },
     { name = "zipstream" },
 ]
@@ -1073,8 +1088,24 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
+    { name = "pyobs-auth", specifier = ">=2.0.0.dev4" },
     { name = "whitenoise", specifier = ">=6.7" },
     { name = "zipstream", specifier = ">=1.1.4" },
+]
+
+[[package]]
+name = "pyobs-auth"
+version = "2.0.0.dev4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "djangorestframework" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/50/a229f1fea1516317ad6b5437ef87b611dde182e99cf74b2c327623e1df09/pyobs_auth-2.0.0.dev4.tar.gz", hash = "sha256:48a1a785a5379fb0fe2b17814bfb140fa18aafc29ec316e81abea66e460ec1e3", size = 9411, upload-time = "2026-08-12T12:29:11.648Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/0e/ede421c0ad50da4450908d7a9a2bfde4157f6d9548be5ae39df12557b821/pyobs_auth-2.0.0.dev4-py3-none-any.whl", hash = "sha256:b66ad9d7ba9d9a0840bea736abc6d25aa4ef34ee73fbdc4ee33f865cadba8d08", size = 11238, upload-time = "2026-08-12T12:29:10.854Z" },
 ]
 
 [[package]]
