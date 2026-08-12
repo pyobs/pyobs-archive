@@ -1,8 +1,15 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
+from pyobs_archive.authentication.admin_sync import sync_admin_user
 from pyobs_archive.authentication.keycloak import resolve_user
 from pyobs_archive.authentication.models import Profile
+
+# A distinct, unlikely-to-collide username -- not "admin", since a real local_settings.py
+# (e.g. a developer's own ADMIN_USERNAME="admin") would already have synced an "admin" User via
+# admin_sync's post_migrate hook by the time the test database exists, before any of this
+# module's own override_settings is active.
+_TEST_ADMIN_USERNAME = "test-sync-admin"
 
 
 class ResolveUserTests(TestCase):
@@ -58,3 +65,34 @@ class ResolveUserTests(TestCase):
 
         self.assertEqual(user.pk, existing.pk)
         self.assertEqual(Profile.objects.get(user=existing).keycloak_sub, "sub-6")
+
+
+@override_settings(ADMIN_USERNAME=_TEST_ADMIN_USERNAME, ADMIN_PASSWORD_HASH="pbkdf2_sha256$dummy")
+class AdminSyncTests(TestCase):
+    """admin_sync.sync_admin_user is how the settings-configured admin account (ADMIN_USERNAME/
+    ADMIN_PASSWORD_HASH) gets created/kept in sync - wired to run after every
+    `manage.py migrate` via the post_migrate signal (AuthenticationConfig.ready()), so a fresh
+    deployment doesn't need an interactive `createsuperuser` step."""
+
+    def test_sync_creates_a_staff_superuser_with_the_configured_password_hash(self):
+        sync_admin_user(sender=None)
+
+        user = User.objects.get(username=_TEST_ADMIN_USERNAME)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_active)
+        self.assertEqual(user.password, "pbkdf2_sha256$dummy")
+
+    def test_sync_updates_an_existing_user_that_drifted(self):
+        User.objects.create(username=_TEST_ADMIN_USERNAME, is_staff=False, is_superuser=False)
+
+        sync_admin_user(sender=None)
+
+        user = User.objects.get(username=_TEST_ADMIN_USERNAME)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+
+    @override_settings(ADMIN_USERNAME="", ADMIN_PASSWORD_HASH="")
+    def test_sync_does_nothing_when_unconfigured(self):
+        sync_admin_user(sender=None)
+        self.assertFalse(User.objects.filter(username=_TEST_ADMIN_USERNAME).exists())

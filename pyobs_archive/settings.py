@@ -212,6 +212,15 @@ PYOBS_AUTH = {
     'USER_RESOLVER': 'pyobs_archive.authentication.keycloak.resolve_user',
 }
 
+# Settings-configured admin account (optional): synced to a real superuser after every
+# `manage.py migrate` (see pyobs_archive.authentication.admin_sync, wired up in
+# AuthenticationConfig.ready() via the post_migrate signal) instead of needing an interactive
+# `createsuperuser` step on a fresh deployment. Leave ADMIN_USERNAME unset to disable.
+# Generate the hash: uv run python -c \
+#   "from django.contrib.auth.hashers import make_password; print(make_password('yourpassword'))"
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', '')
+ADMIN_PASSWORD_HASH = os.getenv('ADMIN_PASSWORD_HASH', '')
+
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
