@@ -1,6 +1,6 @@
 [project]
 name = "pyobs-archive"
-version = "2.0.0.dev5"
+version = "2.0.0.dev6"
 description = "A webservice for an archive for astronomical images."
 requires-python = ">=3.11"
 dependencies = [
@@ -17,6 +17,7 @@ dependencies = [
     "django-cors-headers>=4.4",
     "cryptography>=43.0",
     "whitenoise>=6.7",
+    "pyobs-auth>=2.0.0.dev4",
 ]
 
 [tool.uv]

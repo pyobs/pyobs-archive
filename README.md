@@ -26,8 +26,10 @@ All settings are controlled by environment variables. Copy `pyobs_archive/local_
 | `PATH_FORMATTER` | `{SITEID}/{DAY-OBS}/` | Format string for the sub-path files are stored under, within `ARCHIVE_ROOT` |
 | `FILENAME_FORMATTER` | (empty, use the header `FNAME`) | Format string for the archived filename |
 | `DJANGO_LOG_LEVEL` | `INFO` | Log level for Django's logger |
-| `OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET` | (empty) | OAuth login (optional) |
-| `OAUTH_TOKEN_URL` / `OAUTH_PROFILE_URL` | `http://localhost/...` | OAuth login (optional) |
+| `KEYCLOAK_SERVER_URL` | (empty) | Keycloak login (optional addon on top of local Django username/password; unset disables it) |
+| `KEYCLOAK_REALM` | `pyobs` | Keycloak realm |
+| `KEYCLOAK_CLIENT_ID` / `KEYCLOAK_CLIENT_SECRET` | `archive` / (empty) | This service's Keycloak client credentials |
+| `KEYCLOAK_REDIRECT_URI` | (empty) | Must match the redirect URI registered for this client in Keycloak |
 
 ## Running
 
