@@ -30,6 +30,7 @@ All settings are controlled by environment variables. Copy `pyobs_archive/local_
 | `KEYCLOAK_REALM` | `pyobs` | Keycloak realm |
 | `KEYCLOAK_CLIENT_ID` / `KEYCLOAK_CLIENT_SECRET` | `archive` / (empty) | This service's Keycloak client credentials |
 | `KEYCLOAK_REDIRECT_URI` | (empty) | Must match the redirect URI registered for this client in Keycloak |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | (empty) | Settings-configured superuser, synced after every `migrate` (see [Running](#running)); leave unset to skip and use `createsuperuser` instead |
 
 ## Running
 
@@ -43,6 +44,12 @@ uv run manage.py runserver
 
 With no configuration at all, this runs against a local SQLite database. Open `http://localhost:8000/` and
 log in with the superuser you created.
+
+Setting `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (generate the hash with
+`uv run python -c "from django.contrib.auth.hashers import make_password; print(make_password('yourpassword'))"`)
+syncs a matching superuser automatically after every `migrate`, skipping the interactive
+`createsuperuser` step — handy for scripted/Docker deployments. Leave both unset to opt out and
+create superusers the normal way instead.
 
 Create another user for ingesting new images (in this case, we call it "pyobs") and create the token
 that must be used when sending new images:
