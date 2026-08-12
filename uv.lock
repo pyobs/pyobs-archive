@@ -1055,7 +1055,7 @@ crypto = [
 
 [[package]]
 name = "pyobs-archive"
-version = "2.0.0.dev7"
+version = "2.0.0.dev8"
 source = { virtual = "." }
 dependencies = [
     { name = "astropy" },
