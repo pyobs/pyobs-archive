@@ -1055,7 +1055,7 @@ crypto = [
 
 [[package]]
 name = "pyobs-archive"
-version = "2.0.0.dev6"
+version = "2.0.0.dev7"
 source = { virtual = "." }
 dependencies = [
     { name = "astropy" },
@@ -1088,14 +1088,14 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
-    { name = "pyobs-auth", specifier = ">=2.0.0.dev4" },
+    { name = "pyobs-auth", specifier = ">=2.0.0.dev6" },
     { name = "whitenoise", specifier = ">=6.7" },
     { name = "zipstream", specifier = ">=1.1.4" },
 ]
 
 [[package]]
 name = "pyobs-auth"
-version = "2.0.0.dev4"
+version = "2.0.0.dev6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
@@ -1103,9 +1103,9 @@ dependencies = [
     { name = "pyjwt", extra = ["crypto"] },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/50/a229f1fea1516317ad6b5437ef87b611dde182e99cf74b2c327623e1df09/pyobs_auth-2.0.0.dev4.tar.gz", hash = "sha256:48a1a785a5379fb0fe2b17814bfb140fa18aafc29ec316e81abea66e460ec1e3", size = 9411, upload-time = "2026-08-12T12:29:11.648Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/a2/f54ba6960eeacb2c145c56b2599edfdb6e08593cbe1ecbd158ac36f2dc17/pyobs_auth-2.0.0.dev6.tar.gz", hash = "sha256:c034698206304afd376ba75884cceb9af745750018b4368be36ea12c5fd300d3", size = 9592, upload-time = "2026-08-12T16:04:46.628Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/0e/ede421c0ad50da4450908d7a9a2bfde4157f6d9548be5ae39df12557b821/pyobs_auth-2.0.0.dev4-py3-none-any.whl", hash = "sha256:b66ad9d7ba9d9a0840bea736abc6d25aa4ef34ee73fbdc4ee33f865cadba8d08", size = 11238, upload-time = "2026-08-12T12:29:10.854Z" },
+    { url = "https://files.pythonhosted.org/packages/62/8d/a15b29fffe8a2ed5b303200417567207ecaa77cd1cce941e60cfe0fc8870/pyobs_auth-2.0.0.dev6-py3-none-any.whl", hash = "sha256:7e731bde75fb226130f2e3bdad45a92c338905cabc0047f193b9f92821953d13", size = 11460, upload-time = "2026-08-12T16:04:45.631Z" },
 ]
 
 [[package]]
