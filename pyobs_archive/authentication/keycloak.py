@@ -2,7 +2,11 @@
 
 Keycloak's `sub` claim is the join key (see pyobs-core's shared-auth design doc), stored on
 Profile.keycloak_sub. On first Keycloak login for an existing observation-portal-era account
-(matched by email), the two get linked rather than minting a second, disconnected User.
+(matched by email, falling back to username), the two get linked rather than minting a second,
+disconnected User. Newly-minted accounts default to is_active=False - pyobs-auth's
+CallbackView/KeycloakAuthentication refuse an inactive user, restoring the manual-activation gate
+that OAuth2Backend/BearerAuthentication used to enforce (see 5049c1b) and that got silently
+dropped in the cutover to this resolver.
 """
 
 from __future__ import annotations
@@ -23,11 +27,19 @@ def resolve_user(claims: dict[str, Any]) -> User | None:
         pass
 
     email = claims.get("email")
-    user = User.objects.filter(email=email).first() if email else None
+    username = claims.get("preferred_username") or sub
 
+    user = User.objects.filter(email=email).first() if email else None
     if user is None:
-        username = claims.get("preferred_username") or sub
-        user = User.objects.create(username=username, email=email or "", is_active=True)
+        # Falls back to username since email matching alone misses accounts that predate
+        # requiring an email address (e.g. an old observation-portal-era User with no email set)
+        # - without this, User.objects.create() below hits a UNIQUE constraint on username
+        # instead of linking the existing account.
+        user = User.objects.filter(username=username).first()
+    if user is None:
+        user = User.objects.create(
+            username=username, email=email or "", is_active=False
+        )
 
     Profile.objects.update_or_create(user=user, defaults={"keycloak_sub": sub})
     return user
