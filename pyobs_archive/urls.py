@@ -22,4 +22,5 @@ urlpatterns = [
     path('frames/', include('pyobs_archive.api.urls')),
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/keycloak/', include('pyobs_auth.urls')),
 ]

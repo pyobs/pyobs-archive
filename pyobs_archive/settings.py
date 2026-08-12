@@ -57,14 +57,17 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'oauth2_provider',
+    'pyobs_auth',
     'pyobs_archive.api',
     'pyobs_archive.authentication',
     'pyobs_archive.frontend'
 ]
 
+# Local Django username/password is the default login for every pyobs web project; Keycloak is
+# an optional addon on top, not a replacement - see pyobs_auth.views for the separate,
+# view-based Keycloak login flow (an OIDC redirect doesn't fit the AUTHENTICATION_BACKENDS shape).
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'pyobs_archive.authentication.backends.OAuth2Backend',  # Allows Oauth login with username/pass
 ]
 
 MIDDLEWARE = [
@@ -93,6 +96,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'pyobs_archive.context_processors.keycloak',
             ],
         },
     },
@@ -190,15 +194,22 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'pyobs_archive.authentication.backends.BearerAuthentication',  # Allows auth using oauth bearer
+        'pyobs_auth.authentication.KeycloakAuthentication',  # optional: Bearer tokens from Keycloak
     ),
 }
 
-OAUTH_CLIENT = {
-    'CLIENT_ID': os.getenv('OAUTH_CLIENT_ID', ''),
-    'CLIENT_SECRET': os.getenv('OAUTH_CLIENT_SECRET', ''),
-    'TOKEN_URL': os.getenv('OAUTH_TOKEN_URL', 'http://localhost/o/token/'),
-    'PROFILE_URL': os.getenv('OAUTH_PROFILE_URL', 'http://localhost/api/profile/'),
+# Keycloak is optional: leaving SERVER_URL unset means pyobs_auth.settings.get_settings() raises
+# on first use, which only matters if something actually presents a Keycloak Bearer token or
+# hits the /accounts/keycloak/ login views - local Django username/password keeps working
+# regardless.
+PYOBS_AUTH = {
+    'SERVER_URL': os.getenv('KEYCLOAK_SERVER_URL', ''),
+    'REALM': os.getenv('KEYCLOAK_REALM', 'pyobs'),
+    'CLIENT_ID': os.getenv('KEYCLOAK_CLIENT_ID', 'archive'),
+    'CLIENT_SECRET': os.getenv('KEYCLOAK_CLIENT_SECRET', ''),
+    'REDIRECT_URI': os.getenv('KEYCLOAK_REDIRECT_URI', ''),
+    'POST_LOGOUT_REDIRECT_URI': os.getenv('KEYCLOAK_POST_LOGOUT_REDIRECT_URI', ''),
+    'USER_RESOLVER': 'pyobs_archive.authentication.keycloak.resolve_user',
 }
 
 LOGIN_REDIRECT_URL = '/'
