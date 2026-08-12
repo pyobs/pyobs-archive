@@ -7,7 +7,13 @@ from pyobs_archive.authentication.models import Profile
 
 class ResolveUserTests(TestCase):
     def test_creates_a_new_user_on_first_login(self):
-        user = resolve_user({"sub": "sub-1", "email": "new@example.org", "preferred_username": "newperson"})
+        user = resolve_user(
+            {
+                "sub": "sub-1",
+                "email": "new@example.org",
+                "preferred_username": "newperson",
+            }
+        )
 
         self.assertEqual(user.username, "newperson")
         self.assertEqual(user.email, "new@example.org")
@@ -20,7 +26,9 @@ class ResolveUserTests(TestCase):
         self.assertEqual(first.pk, second.pk)
         self.assertEqual(User.objects.filter(email="person@example.org").count(), 1)
 
-    def test_links_an_existing_observation_portal_era_user_by_email_on_first_keycloak_login(self):
+    def test_links_an_existing_observation_portal_era_user_by_email_on_first_keycloak_login(
+        self,
+    ):
         existing = User.objects.create(username="oldstyle", email="legacy@example.org")
 
         user = resolve_user({"sub": "sub-3", "email": "legacy@example.org"})
@@ -31,3 +39,22 @@ class ResolveUserTests(TestCase):
     def test_falls_back_to_sub_as_username_without_preferred_username(self):
         user = resolve_user({"sub": "sub-4", "email": "no-username@example.org"})
         self.assertEqual(user.username, "sub-4")
+
+    def test_new_user_is_created_inactive(self):
+        user = resolve_user({"sub": "sub-5", "email": "pending@example.org"})
+        self.assertFalse(user.is_active)
+
+    def test_links_an_existing_user_by_username_when_email_does_not_match(self):
+        # e.g. an old observation-portal-era User created before an email address was required
+        existing = User.objects.create(username="noemail")
+
+        user = resolve_user(
+            {
+                "sub": "sub-6",
+                "email": "noemail@example.org",
+                "preferred_username": "noemail",
+            }
+        )
+
+        self.assertEqual(user.pk, existing.pk)
+        self.assertEqual(Profile.objects.get(user=existing).keycloak_sub, "sub-6")
