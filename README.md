@@ -30,6 +30,7 @@ All settings are controlled by environment variables. Copy `pyobs_archive/local_
 | `KEYCLOAK_REALM` | `pyobs` | Keycloak realm |
 | `KEYCLOAK_CLIENT_ID` / `KEYCLOAK_CLIENT_SECRET` | `archive` / (empty) | This service's Keycloak client credentials |
 | `KEYCLOAK_REDIRECT_URI` | (empty) | Must match the redirect URI registered for this client in Keycloak |
+| `KEYCLOAK_IDP_HINT` / `KEYCLOAK_IDP_LABEL` | (empty) | Optional one-click IdP login: hint passed to Keycloak as `kc_idp_hint` (skips its login/IdP-selection page) and the label for the login page's IdP button, e.g. `gwdg` / `GWDG` |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | (empty) | Settings-configured superuser, synced after every `migrate` (see [Running](#running)); leave unset to skip and use `createsuperuser` instead |
 
 ## Running
