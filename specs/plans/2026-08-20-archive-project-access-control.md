@@ -81,7 +81,11 @@ there.
    aggregate endpoint exposes **values, not counts**, and must always compute them from the
    access-filtered queryset (filter first, then aggregate) — never from the full table.
 9. **`zip_view` (POST) silently skips unauthorized frames** — consistent with "only show what
-   you can access"; a mixed selection still downloads the allowed subset.
+   you can access"; a mixed selection still downloads the allowed subset. "Silently" means no
+   404/403 and no per-id error in the response body (that would leak existence, contradicting
+   D8) — but the zip's own manifest/file list already only names what it included, so the
+   requester can tell an id was dropped by its absence, same as any zip with a partially invalid
+   id list today. No new response field needed.
 10. **`related` frames are filtered in both directions** (decided): an accessible frame's
     `related` list (and `get_info()['related_frames']`) drops frames the user cannot access.
 
@@ -90,7 +94,8 @@ there.
 ### 1. Frame → project association — `pyobs_archive/api/models.py`
 
 - [ ] `PROJECT = models.CharField(max_length=10, null=True, default=None, db_index=True)` on
-      `Frame` + migration (`api/migrations/0012_…`).
+      `Frame` + migration `api/migrations/0012_frame_project.py` (numbering follows the existing
+      sequence — `0011_alter_frame_id.py` is the current head).
 - [ ] Add `'PROJECT'` to the keyword list in `add_fits_header()` (absent header → stays `None`).
 - [ ] Expose `PROJECT` in `get_info()` (frontend column + API consumers).
 - [ ] `Frame.ingest()`: when `PROJECT` is absent but `REQNUM` is present, resolve
@@ -175,18 +180,49 @@ there.
 
 ## Tests
 
-- Ingestion: `PROJECT` read from header; absent → `None`; `REQNUM` fallback resolves via the
-  task map (mocked client); client unavailable → stays `None`, no crash.
-- Permissions: superuser/staff → all; member → member + public projects; non-member → excluded;
-  anonymous → existing 401; `PROJECT = None` frames → superuser-only.
-- Endpoints (client + mocked `BackendClient`): `frames_view` / `aggregate_view` /
-  `zip_view_get` return only accessible rows; `zip_view_post` silently skips unauthorized ids;
-  `frame_view` / `download_view` / `headers_view` / `preview_view` / `catalog_view` → 404 for
-  inaccessible frames; `related_view` and `get_info()['related_frames']` filtered.
-- `sync_projects`: upserts + reconciles, follows pagination, aborts cleanly when the backend is
-  unreachable; `PROJECT_ACCESS_CONTROL` off → all previous tests unchanged (feature gate).
+Following the repo's existing convention (`pyobs_archive/api/tests.py`: one flat test file, one
+`TestCase` subclass per unit under test — see `FrameAddFitsHeaderTests`, `FilterFramesTests`,
+`FrameIngestPathSafetyTests`):
+
+- `FrameProjectIngestTests`: `PROJECT` read from header; absent → `None`; `REQNUM` fallback
+  resolves via the task map (mocked client); client unavailable → stays `None`, no crash.
+- `AccessiblePermissionsTests` (`api/permissions.py`): superuser/staff → all; member → member +
+  public projects; non-member → excluded; anonymous → existing 401; `PROJECT = None` frames →
+  superuser-only.
+- `FrameAccessEndpointTests` (client + mocked `BackendClient`): `frames_view` / `aggregate_view`
+  / `zip_view_get` return only accessible rows; `zip_view_post` silently skips unauthorized ids
+  (asserted by absence from the returned zip's manifest, not an error); `frame_view` /
+  `download_view` / `headers_view` / `preview_view` / `catalog_view` → 404 for inaccessible
+  frames; `related_view` and `get_info()['related_frames']` filtered.
+- `SyncProjectsCommandTests`: upserts + reconciles, follows pagination, aborts cleanly (non-zero
+  exit) when the backend is unreachable; `PROJECT_ACCESS_CONTROL` off → all previous tests
+  unchanged (feature gate).
 - Manual smoke test: one public + one private project, member and non-member users; verify
   listings, downloads, zip, and that 404s don't reveal existence.
+
+## Rollout sequence
+
+Cross-repo, so order matters — each step is independently safe to deploy (feature-gated or
+additive) before the next:
+
+1. **pyobs-core**: release `Mastermind.get_fits_header_before()` writing `PROJECT` (companion
+   plan, §1 upstream item). Not a hard blocker for the rest — ingest's `REQNUM` fallback (D4)
+   covers frames until this lands and gets adopted by observing sites.
+2. **pyobs-robotic-backend**: `Project`/`users`/`public` API is already live (see "What exists
+   today") — no action needed here before starting.
+3. **pyobs-archive**, `PROJECT_ACCESS_CONTROL` still unset/`False` (no behavior change for
+   existing installs):
+   a. Ship the `PROJECT` column + migration, the backend client, the mirror models, and
+      `sync_projects` — run it once manually to confirm connectivity and populate the mirror.
+   b. Run the backfill (§6) to associate existing frames via `REQNUM`.
+   c. Ship the endpoint filtering (§5), still inert while the flag is off.
+4. **Flip `PROJECT_ACCESS_CONTROL=true`** per deployment, only once steps 3a–3c have been
+   running long enough that the mirror and backfill are trusted (recommend: confirm `PROJECT`
+   coverage on recent frames via a quick DB count before flipping, since anything still `NULL`
+   goes superuser-only the moment the flag is on).
+5. **Schedule `sync_projects`** as a periodic job (cron/systemd timer, §3) from the same
+   deployment step as the flag flip — running the flag without the periodic sync means
+   membership changes on the backend never propagate.
 
 ## Consequences
 
