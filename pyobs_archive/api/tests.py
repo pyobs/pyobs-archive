@@ -1,10 +1,16 @@
 import tempfile
+from unittest import mock
 
+import requests
 from astropy.io import fits
+from django.contrib.auth.models import User
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, RequestFactory
 from rest_framework.exceptions import ParseError
 
-from pyobs_archive.api.models import Frame
+from pyobs_archive.api.backend import BackendUnavailable
+from pyobs_archive.api.models import Frame, Project
 from pyobs_archive.api.views import filter_frames, sort_frames
 
 
@@ -211,3 +217,187 @@ class FrameIngestPathSafetyTests(TestCase):
                             FILENAME_FORMATTER='{FNAME}'):
             with self.assertRaises(ValueError):
                 Frame.ingest(filename)
+
+
+class FrameProjectIngestTests(TestCase):
+    """PROJECT association: FITS header, REQNUM->project fallback via the robotic backend."""
+
+    def test_project_read_from_header(self):
+        frame = Frame()
+        frame.add_fits_header(_header(PROJECT='XYZ001'))
+        self.assertEqual(frame.PROJECT, 'XYZ001')
+
+    def test_project_defaults_to_none_when_absent(self):
+        frame = Frame()
+        frame.add_fits_header(_header())
+        self.assertIsNone(frame.PROJECT)
+
+    @mock.patch('pyobs_archive.api.models.BackendClient')
+    def test_reqnum_fallback_resolves_project(self, mock_client_cls):
+        mock_client_cls.return_value.get_tasks.return_value = [{'id': 12345, 'project': 'XYZ001'}]
+
+        frame = Frame()
+        frame.add_fits_header(_header(REQNUM='12345'))
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame.resolve_project_from_reqnum()
+
+        self.assertEqual(frame.PROJECT, 'XYZ001')
+        mock_client_cls.assert_called_once_with(
+            'https://backend.example.org', 'tok', timeout=mock.ANY
+        )
+
+    def test_reqnum_fallback_is_noop_when_project_already_set(self):
+        frame = Frame()
+        frame.add_fits_header(_header(PROJECT='ABC001', REQNUM='999'))
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame.resolve_project_from_reqnum()
+        self.assertEqual(frame.PROJECT, 'ABC001')
+
+    def test_reqnum_fallback_is_noop_without_reqnum(self):
+        header = _header()
+        del header['REQNUM']
+
+        frame = Frame()
+        frame.add_fits_header(header)
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame.resolve_project_from_reqnum()
+        self.assertIsNone(frame.PROJECT)
+
+    def test_backend_not_configured_leaves_project_none(self):
+        frame = Frame()
+        frame.add_fits_header(_header(REQNUM='12345'))
+        with self.settings(ROBOTIC_BACKEND_URL='', ROBOTIC_BACKEND_TOKEN=''):
+            frame.resolve_project_from_reqnum()  # should not raise
+        self.assertIsNone(frame.PROJECT)
+
+    @mock.patch('pyobs_archive.api.models.BackendClient')
+    def test_backend_unavailable_leaves_project_none(self, mock_client_cls):
+        mock_client_cls.return_value.get_tasks.side_effect = BackendUnavailable('boom')
+
+        frame = Frame()
+        frame.add_fits_header(_header(REQNUM='12345'))
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame.resolve_project_from_reqnum()  # should not raise
+        self.assertIsNone(frame.PROJECT)
+
+    @mock.patch('pyobs_archive.api.models.BackendClient')
+    def test_reqnum_not_in_task_map_leaves_project_none(self, mock_client_cls):
+        mock_client_cls.return_value.get_tasks.return_value = [{'id': 1, 'project': 'OTHER'}]
+
+        frame = Frame()
+        frame.add_fits_header(_header(REQNUM='12345'))
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame.resolve_project_from_reqnum()
+        self.assertIsNone(frame.PROJECT)
+
+
+def _mock_response(json_data, status_code=200):
+    response = mock.Mock()
+    response.status_code = status_code
+    response.json.return_value = json_data
+    if status_code >= 400:
+        response.raise_for_status.side_effect = requests.HTTPError(response=response)
+    else:
+        response.raise_for_status.return_value = None
+    return response
+
+
+class SyncProjectsCommandTests(TestCase):
+    """`manage.py sync_projects`: upserts + reconciles the local Project mirror."""
+
+    def setUp(self):
+        self.alice = User.objects.create_user('alice')
+        self.bob = User.objects.create_user('bob')
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_creates_projects_and_reconciles_members_across_pages(self, mock_get):
+        page1 = _mock_response({
+            'next': 'https://backend.example.org/api/projects/?page=2',
+            'results': [{'code': 'A', 'name': 'Project A', 'public': True, 'users': ['alice']}],
+        })
+        page2 = _mock_response({
+            'next': None,
+            'results': [
+                {'code': 'B', 'name': 'Project B', 'public': False, 'users': ['alice', 'bob']},
+            ],
+        })
+        mock_get.side_effect = [page1, page2]
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            call_command('sync_projects')
+
+        self.assertEqual(mock_get.call_count, 2)
+        self.assertEqual(Project.objects.count(), 2)
+
+        project_a = Project.objects.get(code='A')
+        self.assertEqual(project_a.name, 'Project A')
+        self.assertTrue(project_a.public)
+        self.assertEqual(set(project_a.users.values_list('username', flat=True)), {'alice'})
+
+        project_b = Project.objects.get(code='B')
+        self.assertFalse(project_b.public)
+        self.assertEqual(
+            set(project_b.users.values_list('username', flat=True)), {'alice', 'bob'}
+        )
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_updates_existing_project_and_drops_stale_member(self, mock_get):
+        project = Project.objects.create(code='A', name='Old name', public=False)
+        project.users.set([self.alice, self.bob])
+
+        mock_get.return_value = _mock_response({
+            'next': None,
+            'results': [{'code': 'A', 'name': 'New name', 'public': True, 'users': ['alice']}],
+        })
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            call_command('sync_projects')
+
+        project.refresh_from_db()
+        self.assertEqual(project.name, 'New name')
+        self.assertTrue(project.public)
+        self.assertEqual(list(project.users.values_list('username', flat=True)), ['alice'])
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_deletes_projects_removed_on_backend(self, mock_get):
+        Project.objects.create(code='STALE', name='Stale', public=False)
+        mock_get.return_value = _mock_response({'next': None, 'results': []})
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            call_command('sync_projects')
+
+        self.assertFalse(Project.objects.filter(code='STALE').exists())
+
+    def test_aborts_when_backend_not_configured(self):
+        with self.settings(ROBOTIC_BACKEND_URL='', ROBOTIC_BACKEND_TOKEN=''):
+            with self.assertRaises(CommandError):
+                call_command('sync_projects')
+        self.assertEqual(Project.objects.count(), 0)
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_aborts_with_nonzero_exit_when_backend_unreachable(self, mock_get):
+        mock_get.side_effect = requests.ConnectionError('boom')
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            with self.assertRaises(CommandError):
+                call_command('sync_projects')
+        self.assertEqual(Project.objects.count(), 0)
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_aborts_when_backend_returns_server_error(self, mock_get):
+        mock_get.return_value = _mock_response({}, status_code=502)
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            with self.assertRaises(CommandError):
+                call_command('sync_projects')
+        self.assertEqual(Project.objects.count(), 0)

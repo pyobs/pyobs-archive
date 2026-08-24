@@ -238,6 +238,16 @@ FILENAME_FORMATTER = os.environ.get('FILENAME_FORMATTER') or None
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
 
+# pyobs-robotic-backend connection, used to mirror projects/users (`manage.py sync_projects`)
+# and to resolve REQNUM -> project at ingest time - see
+# specs/plans/2026-08-20-archive-project-access-control.md. Leaving PROJECT_ACCESS_CONTROL unset
+# (or falsy) keeps today's behavior (no per-project access filtering); it's independent of
+# whether the backend connection itself is configured.
+ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')
+ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')
+ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', '5'))
+PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in ('1', 'true', 'yes')
+
 # try to import a local_settings.py
 try:
     from .local_settings import *
