@@ -18,7 +18,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
-from pyobs_archive.api.permissions import can_access_frame, frame_access_q
+from pyobs_archive.api.permissions import can_access_frame, filter_accessible_frames, frame_access_q
 from pyobs_archive.api.utils import fitssec
 
 log = logging.getLogger(__name__)
@@ -267,7 +267,7 @@ def related_view(request, frame_id):
     # related set may still contain other projects' frames (plan D10)
     related_frames = frame.related.all()
     if settings.PROJECT_ACCESS_CONTROL:
-        related_frames = [f for f in related_frames if can_access_frame(request.user, f)]
+        related_frames = filter_accessible_frames(request.user, related_frames)
 
     # get all related and return it
     related = [f.get_info(request.user) for f in related_frames]
@@ -341,14 +341,16 @@ def zip_view_post(request):
     # get frames
     frames = []
     for frame_id in request.POST.getlist('frame_ids[]'):
-        # get frame; a nonexistent id still raises 404 for the whole request as before, but an
-        # id that exists and just isn't accessible is silently skipped instead - no per-id
-        # error, so a mixed selection still downloads the allowed subset (plan D9)
+        # a nonexistent id fails the whole request, flag on or off, exactly as before. An id
+        # that exists but isn't accessible is silently skipped instead - no per-id error, so a
+        # mixed selection still downloads the allowed subset (plan D9). _frame() 404s for both
+        # "doesn't exist" and "exists but inaccessible" (D8), so check existence separately
+        # here to tell the two apart rather than swallowing both.
+        if not Frame.objects.filter(id=frame_id).exists():
+            raise Http404()
         try:
             frames.append(_frame(request, frame_id))
         except Http404:
-            if not settings.PROJECT_ACCESS_CONTROL:
-                raise
             continue
 
     # download

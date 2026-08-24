@@ -55,3 +55,17 @@ def frame_access_q(user):
     if projects is None:
         return Q()
     return Q(PROJECT__in=projects)
+
+
+def filter_accessible_frames(user, frames):
+    """Filter an already-fetched iterable of Frame objects down to what `user` may access.
+
+    Equivalent to `[f for f in frames if can_access_frame(user, f)]`, but computes
+    `accessible_projects(user)` once up front instead of once per frame - use this (rather than
+    calling `can_access_frame` in a loop) when checking several frames for the same user, e.g. a
+    frame's related-frames list (D10), to avoid an avoidable query per frame.
+    """
+    projects = accessible_projects(user)
+    if projects is None:
+        return list(frames)
+    return [f for f in frames if f.PROJECT is not None and f.PROJECT in projects]

@@ -15,7 +15,9 @@ from rest_framework.exceptions import ParseError
 from pyobs_archive.api import models as models_module
 from pyobs_archive.api.backend import BackendClient, BackendUnavailable
 from pyobs_archive.api.models import Frame, Project
-from pyobs_archive.api.permissions import accessible_projects, can_access_frame, frame_access_q
+from pyobs_archive.api.permissions import (
+    accessible_projects, can_access_frame, filter_accessible_frames, frame_access_q,
+)
 from pyobs_archive.api.views import filter_frames, sort_frames
 
 
@@ -298,6 +300,28 @@ class AccessiblePermissionsTests(TestCase):
             accessible, {'frame_public', 'frame_private', 'frame_other', 'frame_none'}
         )
 
+    def test_filter_accessible_frames_matches_can_access_frame_per_frame(self):
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+
+        result = {f.basename for f in filter_accessible_frames(self.member, frames)}
+        self.assertEqual(result, {'frame_public', 'frame_private'})
+        self.assertEqual(
+            result, {f.basename for f in frames if can_access_frame(self.member, f)}
+        )
+
+    def test_filter_accessible_frames_is_unfiltered_for_superuser(self):
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+        result = filter_accessible_frames(self.superuser, frames)
+        self.assertEqual(result, frames)
+
+    def test_filter_accessible_frames_computes_accessible_projects_once(self):
+        # the whole point of filter_accessible_frames() over calling can_access_frame() per
+        # frame: one accessible_projects() computation (2 queries: public + member projects),
+        # not one per frame
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+        with self.assertNumQueries(2):
+            filter_accessible_frames(self.member, frames)
+
 
 class FrameAccessEndpointTests(TestCase):
     """Endpoint-level access filtering (plan section 5) via the Django test client."""
@@ -392,6 +416,17 @@ class FrameAccessEndpointTests(TestCase):
         # regression guard: nonexistent ids still fail the whole request when the flag is off
         self.client.force_login(self.outsider)
         response = self.client.post('/frames/zip/', {'frame_ids[]': [999999]})
+        self.assertEqual(response.status_code, 404)
+
+    def test_zip_view_post_404_for_missing_id_when_flag_on(self):
+        # a nonexistent id must still fail the whole request when the flag is on too - it must
+        # NOT be conflated with "exists but inaccessible" (which is silently skipped, D9) and
+        # swallowed by the same except-Http404 branch
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.post('/frames/zip/', {
+                'frame_ids[]': [self.frame_public.id, 999999],
+            })
         self.assertEqual(response.status_code, 404)
 
     # -- per-frame endpoints: frame_view, download_view, headers_view, preview_view,

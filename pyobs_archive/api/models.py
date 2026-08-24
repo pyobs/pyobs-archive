@@ -202,11 +202,13 @@ class Frame(models.Model):
             info['OBJECT'] = None
             info['FILTER'] = None
 
-        # add related frames, dropping any the requesting user can't access (D10)
+        # add related frames, dropping any the requesting user can't access (D10). Computes
+        # accessible_projects(user) once via filter_accessible_frames() rather than re-querying
+        # it per related frame.
         related = self.related.all()
         if user is not None and settings.PROJECT_ACCESS_CONTROL:
-            from pyobs_archive.api.permissions import can_access_frame  # local: avoid import cycle
-            related = [f for f in related if can_access_frame(user, f)]
+            from pyobs_archive.api.permissions import filter_accessible_frames  # local: avoid import cycle
+            related = filter_accessible_frames(user, related)
         info['related_frames'] = [f.id for f in related]
 
         # add url
