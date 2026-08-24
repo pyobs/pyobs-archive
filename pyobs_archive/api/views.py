@@ -18,16 +18,22 @@ from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from pyobs_archive.api.models import Frame
+from pyobs_archive.api.permissions import can_access_frame, filter_accessible_frames, frame_access_q
 from pyobs_archive.api.utils import fitssec
 
 log = logging.getLogger(__name__)
 
 
-def _frame(frame_id):
+def _frame(request, frame_id):
     # get frame
     try:
         frame = Frame.objects.get(id=frame_id)
     except Frame.DoesNotExist:
+        raise Http404()
+
+    # access control: answer 404 (not 403) for frames the user can't see, so existence of
+    # private frames isn't leaked (plan D8)
+    if settings.PROJECT_ACCESS_CONTROL and not can_access_frame(request.user, frame):
         raise Http404()
 
     # build filename
@@ -65,7 +71,7 @@ def create_view(request):
 @permission_classes([IsAdminUser])
 def delete_view(request, frame_id):
     # get frame and filename
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
 
     # delete file
     os.remove(filename)
@@ -184,8 +190,12 @@ def frames_view(request):
     # filter
     data = filter_frames(data, request)
 
+    # restrict to what the user may access (no-op unless PROJECT_ACCESS_CONTROL is on)
+    if settings.PROJECT_ACCESS_CONTROL:
+        data = data.filter(frame_access_q(request.user))
+
     # get results
-    results = [frame.get_info() for frame in data[int(offset):int(offset) + int(limit)]]
+    results = [frame.get_info(request.user) for frame in data[int(offset):int(offset) + int(limit)]]
 
     # return them
     return JsonResponse({'count': data.count(), 'results': results})
@@ -197,8 +207,11 @@ def aggregate_view(request):
     # get response
     data = Frame.objects
 
-    # filter
+    # filter first, then aggregate - facet values must only reflect the accessible subset, and
+    # never leak existence via counts/values beyond it (plan D8)
     data = filter_frames(data, request).all()
+    if settings.PROJECT_ACCESS_CONTROL:
+        data = data.filter(frame_access_q(request.user))
 
     # get all options
     image_types = list(data.values_list('IMAGETYP', flat=True).distinct())
@@ -226,15 +239,15 @@ def aggregate_view(request):
 @permission_classes([IsAuthenticated])
 def frame_view(request, frame_id):
     # get data
-    frame, filename = _frame(frame_id)
-    return JsonResponse(frame.get_info())
+    frame, filename = _frame(request, frame_id)
+    return JsonResponse(frame.get_info(request.user))
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def download_view(request, frame_id):
     # get frame and filename
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
 
     # send it
     with open(filename, 'rb') as fh:
@@ -248,10 +261,16 @@ def download_view(request, frame_id):
 @permission_classes([IsAuthenticated])
 def related_view(request, frame_id):
     # get frame
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
+
+    # get all related frames, dropping any the user can't access - an accessible frame's
+    # related set may still contain other projects' frames (plan D10)
+    related_frames = frame.related.all()
+    if settings.PROJECT_ACCESS_CONTROL:
+        related_frames = filter_accessible_frames(request.user, related_frames)
 
     # get all related and return it
-    related = [f.get_info() for f in frame.related.all()]
+    related = [f.get_info(request.user) for f in related_frames]
     return JsonResponse(related, safe=False)
 
 
@@ -259,7 +278,7 @@ def related_view(request, frame_id):
 @permission_classes([IsAuthenticated])
 def headers_view(request, frame_id):
     # get frame and filename
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
 
     # load headers
     hdr = fits.getheader(filename, 'SCI')
@@ -277,7 +296,7 @@ def preview_view(request, frame_id):
     import matplotlib.pyplot as plt
 
     # get frame and filename
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
 
     # load data and trim it
     hdus = fits.open(filename)
@@ -322,8 +341,17 @@ def zip_view_post(request):
     # get frames
     frames = []
     for frame_id in request.POST.getlist('frame_ids[]'):
-        # get frame
-        frames.append(_frame(frame_id))
+        # a nonexistent id fails the whole request, flag on or off, exactly as before. An id
+        # that exists but isn't accessible is silently skipped instead - no per-id error, so a
+        # mixed selection still downloads the allowed subset (plan D9). _frame() 404s for both
+        # "doesn't exist" and "exists but inaccessible" (D8), so check existence separately
+        # here to tell the two apart rather than swallowing both.
+        if not Frame.objects.filter(id=frame_id).exists():
+            raise Http404()
+        try:
+            frames.append(_frame(request, frame_id))
+        except Http404:
+            continue
 
     # download
     return _download_zip(request, frames)
@@ -343,6 +371,8 @@ def zip_view_get(request):
 
     # filter
     data = filter_frames(Frame.objects, request)
+    if settings.PROJECT_ACCESS_CONTROL:
+        data = data.filter(frame_access_q(request.user))
 
     # and frames
     root = settings.ARCHIVE_ROOT
@@ -379,7 +409,7 @@ def _download_zip(request, frames):
 @permission_classes([IsAuthenticated])
 def catalog_view(request, frame_id):
     # get frame and filename
-    frame, filename = _frame(frame_id)
+    frame, filename = _frame(request, frame_id)
 
     # load data and trim it
     try:
