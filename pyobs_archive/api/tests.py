@@ -1,9 +1,12 @@
+import io
+import os
 import tempfile
+import zipfile
 from unittest import mock
 
 import requests
 from astropy.io import fits
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AnonymousUser, User
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, RequestFactory
@@ -12,6 +15,9 @@ from rest_framework.exceptions import ParseError
 from pyobs_archive.api import models as models_module
 from pyobs_archive.api.backend import BackendClient, BackendUnavailable
 from pyobs_archive.api.models import Frame, Project
+from pyobs_archive.api.permissions import (
+    accessible_projects, can_access_frame, filter_accessible_frames, frame_access_q,
+)
 from pyobs_archive.api.views import filter_frames, sort_frames
 
 
@@ -40,6 +46,17 @@ def _header(**overrides):
         if value is not None:
             header[key] = value
     return header
+
+
+def _make_frame(basename, **overrides):
+    defaults = dict(
+        path='p', SITEID='site1', TELID='tel1', INSTRUME='inst1',
+        IMAGETYP='object', DATE_OBS='2024-01-15T10:00:00Z', night='2024-01-15',
+        OBJECT='M31', EXPTIME=30.0, FILTER='clear', RLEVEL=0,
+        XBINNING=1, YBINNING=1, width=100, height=100,
+    )
+    defaults.update(overrides)
+    return Frame.objects.create(basename=basename, **defaults)
 
 
 class FrameAddFitsHeaderTests(TestCase):
@@ -218,6 +235,283 @@ class FrameIngestPathSafetyTests(TestCase):
                             FILENAME_FORMATTER='{FNAME}'):
             with self.assertRaises(ValueError):
                 Frame.ingest(filename)
+
+
+class AccessiblePermissionsTests(TestCase):
+    """pyobs_archive.api.permissions: accessible_projects / can_access_frame / frame_access_q."""
+
+    def setUp(self):
+        self.member = User.objects.create_user('member')
+        self.outsider = User.objects.create_user('outsider')
+        self.staff = User.objects.create_user('staffer', is_staff=True)
+        self.superuser = User.objects.create_superuser('admin', password='x')
+
+        self.public_project = Project.objects.create(code='PUB', name='Public', public=True)
+        self.private_project = Project.objects.create(code='PRIV', name='Private', public=False)
+        self.private_project.users.set([self.member])
+        Project.objects.create(code='OTHER', name='Other', public=False)
+
+        self.frame_public = _make_frame('frame_public', PROJECT='PUB')
+        self.frame_private = _make_frame('frame_private', PROJECT='PRIV')
+        self.frame_other = _make_frame('frame_other', PROJECT='OTHER')
+        self.frame_none = _make_frame('frame_none', PROJECT=None)
+
+    def test_superuser_sees_everything(self):
+        self.assertIsNone(accessible_projects(self.superuser))
+        for frame in (self.frame_public, self.frame_private, self.frame_other, self.frame_none):
+            self.assertTrue(can_access_frame(self.superuser, frame))
+
+    def test_staff_sees_everything(self):
+        self.assertIsNone(accessible_projects(self.staff))
+        self.assertTrue(can_access_frame(self.staff, self.frame_none))
+
+    def test_member_sees_member_and_public_projects(self):
+        self.assertEqual(accessible_projects(self.member), {'PUB', 'PRIV'})
+        self.assertTrue(can_access_frame(self.member, self.frame_public))
+        self.assertTrue(can_access_frame(self.member, self.frame_private))
+        self.assertFalse(can_access_frame(self.member, self.frame_other))
+
+    def test_non_member_excluded_from_private_project(self):
+        self.assertEqual(accessible_projects(self.outsider), {'PUB'})
+        self.assertTrue(can_access_frame(self.outsider, self.frame_public))
+        self.assertFalse(can_access_frame(self.outsider, self.frame_private))
+
+    def test_unassociated_frame_is_superuser_only(self):
+        self.assertFalse(can_access_frame(self.member, self.frame_none))
+        self.assertFalse(can_access_frame(self.outsider, self.frame_none))
+        self.assertTrue(can_access_frame(self.superuser, self.frame_none))
+
+    def test_anonymous_user_has_no_access(self):
+        anon = AnonymousUser()
+        self.assertEqual(accessible_projects(anon), set())
+        self.assertFalse(can_access_frame(anon, self.frame_public))
+
+    def test_frame_access_q_filters_queryset_for_member(self):
+        accessible = set(
+            Frame.objects.filter(frame_access_q(self.member)).values_list('basename', flat=True)
+        )
+        self.assertEqual(accessible, {'frame_public', 'frame_private'})
+
+    def test_frame_access_q_is_unfiltered_for_superuser(self):
+        accessible = set(
+            Frame.objects.filter(frame_access_q(self.superuser)).values_list('basename', flat=True)
+        )
+        self.assertEqual(
+            accessible, {'frame_public', 'frame_private', 'frame_other', 'frame_none'}
+        )
+
+    def test_filter_accessible_frames_matches_can_access_frame_per_frame(self):
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+
+        result = {f.basename for f in filter_accessible_frames(self.member, frames)}
+        self.assertEqual(result, {'frame_public', 'frame_private'})
+        self.assertEqual(
+            result, {f.basename for f in frames if can_access_frame(self.member, f)}
+        )
+
+    def test_filter_accessible_frames_is_unfiltered_for_superuser(self):
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+        result = filter_accessible_frames(self.superuser, frames)
+        self.assertEqual(result, frames)
+
+    def test_filter_accessible_frames_computes_accessible_projects_once(self):
+        # the whole point of filter_accessible_frames() over calling can_access_frame() per
+        # frame: one accessible_projects() computation (2 queries: public + member projects),
+        # not one per frame
+        frames = [self.frame_public, self.frame_private, self.frame_other, self.frame_none]
+        with self.assertNumQueries(2):
+            filter_accessible_frames(self.member, frames)
+
+
+class FrameAccessEndpointTests(TestCase):
+    """Endpoint-level access filtering (plan section 5) via the Django test client."""
+
+    def setUp(self):
+        self.member = User.objects.create_user('member', password='pw')
+        self.outsider = User.objects.create_user('outsider', password='pw')
+        self.superuser = User.objects.create_superuser('admin', password='pw')
+
+        self.public_project = Project.objects.create(code='PUB', name='Public', public=True)
+        self.private_project = Project.objects.create(code='PRIV', name='Private', public=False)
+        self.private_project.users.set([self.member])
+
+        self.archive_root = tempfile.mkdtemp()
+        self.frame_public = self._make_frame_with_file('frame_public', PROJECT='PUB', SITEID='sitepub')
+        self.frame_private = self._make_frame_with_file(
+            'frame_private', PROJECT='PRIV', SITEID='sitepriv'
+        )
+        self.frame_none = self._make_frame_with_file('frame_none', PROJECT=None, SITEID='sitenone')
+
+        # an accessible frame with an inaccessible related frame (D10)
+        self.frame_public.related.set([self.frame_private])
+
+    def _make_frame_with_file(self, basename, **overrides):
+        frame = _make_frame(basename, **overrides)
+        directory = os.path.join(self.archive_root, frame.path)
+        os.makedirs(directory, exist_ok=True)
+        with open(os.path.join(directory, frame.basename + '.fits.fz'), 'wb') as f:
+            f.write(b'x')
+        return frame
+
+    def _zip_namelist(self, response):
+        content = b''.join(response.streaming_content)
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            return zf.namelist()
+
+    # -- frames_view --------------------------------------------------------------------
+
+    def test_frames_view_filters_to_accessible_when_flag_on(self):
+        self.client.force_login(self.member)
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/')
+        self.assertEqual(response.status_code, 200)
+        basenames = {r['basename'] for r in response.json()['results']}
+        self.assertEqual(basenames, {'frame_public', 'frame_private'})
+
+    def test_frames_view_unfiltered_when_flag_off(self):
+        # critical regression guard: default (flag off) behavior must stay identical
+        self.client.force_login(self.outsider)
+        response = self.client.get('/frames/')
+        self.assertEqual(response.status_code, 200)
+        basenames = {r['basename'] for r in response.json()['results']}
+        self.assertEqual(basenames, {'frame_public', 'frame_private', 'frame_none'})
+
+    # -- aggregate_view -------------------------------------------------------------------
+
+    def test_aggregate_view_reflects_only_accessible_subset(self):
+        self.client.force_login(self.outsider)  # only sees frame_public
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/aggregate/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['sites'], ['sitepub'])
+
+    def test_aggregate_view_unfiltered_when_flag_off(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get('/frames/aggregate/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.json()['sites']), {'sitepub', 'sitepriv', 'sitenone'})
+
+    # -- zip_view_get / zip_view_post ------------------------------------------------------
+
+    def test_zip_view_get_only_includes_accessible_files(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.get('/frames/zip/')
+        names = self._zip_namelist(response)
+        self.assertTrue(any('frame_public' in n for n in names))
+        self.assertFalse(any('frame_private' in n for n in names))
+
+    def test_zip_view_post_silently_skips_unauthorized_ids(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.post('/frames/zip/', {
+                'frame_ids[]': [self.frame_public.id, self.frame_private.id],
+            })
+        self.assertEqual(response.status_code, 200)
+        names = self._zip_namelist(response)
+        self.assertTrue(any('frame_public' in n for n in names))
+        self.assertFalse(any('frame_private' in n for n in names))
+
+    def test_zip_view_post_404_for_missing_id_when_flag_off(self):
+        # regression guard: nonexistent ids still fail the whole request when the flag is off
+        self.client.force_login(self.outsider)
+        response = self.client.post('/frames/zip/', {'frame_ids[]': [999999]})
+        self.assertEqual(response.status_code, 404)
+
+    def test_zip_view_post_404_for_missing_id_when_flag_on(self):
+        # a nonexistent id must still fail the whole request when the flag is on too - it must
+        # NOT be conflated with "exists but inaccessible" (which is silently skipped, D9) and
+        # swallowed by the same except-Http404 branch
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.post('/frames/zip/', {
+                'frame_ids[]': [self.frame_public.id, 999999],
+            })
+        self.assertEqual(response.status_code, 404)
+
+    # -- per-frame endpoints: frame_view, download_view, headers_view, preview_view,
+    #    catalog_view all share the central _frame() access check --------------------------
+
+    def test_frame_view_404_for_inaccessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/%d/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_frame_view_ok_for_accessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/%d/' % self.frame_public.id)
+        self.assertEqual(response.status_code, 200)
+
+    def test_frame_view_accessible_when_flag_off(self):
+        # regression guard: no filtering at all when the flag is off
+        self.client.force_login(self.outsider)
+        response = self.client.get('/frames/%d/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 200)
+
+    def test_download_view_404_for_inaccessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.get('/frames/%d/download/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_headers_view_404_for_inaccessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.get('/frames/%d/headers/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_preview_view_404_for_inaccessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.get('/frames/%d/preview/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_catalog_view_404_for_inaccessible_frame(self):
+        self.client.force_login(self.outsider)
+        with self.settings(PROJECT_ACCESS_CONTROL=True, ARCHIVE_ROOT=self.archive_root):
+            response = self.client.get('/frames/%d/catalog/' % self.frame_private.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_unassociated_frame_is_superuser_only_via_endpoint(self):
+        self.client.force_login(self.member)
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/%d/' % self.frame_none.id)
+        self.assertEqual(response.status_code, 404)
+
+        self.client.force_login(self.superuser)
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/%d/' % self.frame_none.id)
+        self.assertEqual(response.status_code, 200)
+
+    # -- related_view / get_info()['related_frames'] (D10) ---------------------------------
+
+    def test_related_view_filters_inaccessible_related_frames(self):
+        self.client.force_login(self.outsider)  # only sees frame_public
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            response = self.client.get('/frames/%d/related/' % self.frame_public.id)
+        self.assertEqual(response.status_code, 200)
+        ids = [r['id'] for r in response.json()]
+        self.assertNotIn(self.frame_private.id, ids)
+
+    def test_related_view_unfiltered_when_flag_off(self):
+        self.client.force_login(self.outsider)
+        response = self.client.get('/frames/%d/related/' % self.frame_public.id)
+        self.assertEqual(response.status_code, 200)
+        ids = [r['id'] for r in response.json()]
+        self.assertIn(self.frame_private.id, ids)
+
+    def test_get_info_drops_inaccessible_related_frames_for_user(self):
+        with self.settings(PROJECT_ACCESS_CONTROL=True):
+            info = self.frame_public.get_info(self.outsider)
+        self.assertNotIn(self.frame_private.id, info['related_frames'])
+
+    def test_get_info_keeps_related_frames_without_a_user(self):
+        # no request user (e.g. called outside a request context) -> no filtering, matches the
+        # flag-off / no-op default
+        info = self.frame_public.get_info()
+        self.assertIn(self.frame_private.id, info['related_frames'])
 
 
 class FrameProjectIngestTests(TestCase):
