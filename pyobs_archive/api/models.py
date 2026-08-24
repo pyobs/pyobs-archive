@@ -1,6 +1,7 @@
 import math
 import logging
 import subprocess
+import time
 from urllib.parse import urljoin
 import os
 import io
@@ -15,6 +16,46 @@ from pyobs_archive.api.utils import FilenameFormatter
 from pyobs_archive.api.backend import BackendClient, BackendUnavailable
 
 log = logging.getLogger(__name__)
+
+# In-process cache for the REQNUM (task id) -> project code map used by
+# Frame.resolve_project_from_reqnum() (see specs/plans/2026-08-20-archive-project-access-control.md,
+# D4). A short TTL keeps a burst of ingests (e.g. overnight) from triggering a full paginated
+# `get_tasks()` fetch per frame, while still picking up new tasks reasonably quickly.
+_TASK_MAP_CACHE_TTL = 60  # seconds
+_task_map_cache = None
+_task_map_cache_expires = 0.0
+
+
+def _reset_task_map_cache():
+    """Clear the in-process task map cache. Mainly a test hook."""
+    global _task_map_cache, _task_map_cache_expires
+    _task_map_cache = None
+    _task_map_cache_expires = 0.0
+
+
+def _get_task_map():
+    """Fetch (and cache) REQNUM (task id) -> project code from the robotic backend.
+
+    Raises:
+        BackendUnavailable: if the backend can't be reached. Failures aren't cached, so the
+            next call retries.
+    """
+    global _task_map_cache, _task_map_cache_expires
+
+    now = time.monotonic()
+    if _task_map_cache is not None and now < _task_map_cache_expires:
+        return _task_map_cache
+
+    client = BackendClient(
+        settings.ROBOTIC_BACKEND_URL, settings.ROBOTIC_BACKEND_TOKEN,
+        timeout=settings.ROBOTIC_BACKEND_TIMEOUT
+    )
+    tasks = client.get_tasks()
+
+    task_map = {str(task['id']): task.get('project') for task in tasks}
+    _task_map_cache = task_map
+    _task_map_cache_expires = now + _TASK_MAP_CACHE_TTL
+    return task_map
 
 
 class Project(models.Model):
@@ -174,23 +215,20 @@ class Frame(models.Model):
             return
 
         if not settings.ROBOTIC_BACKEND_URL or not settings.ROBOTIC_BACKEND_TOKEN:
-            log.warning(
+            # Expected/common state for any install that hasn't configured the backend
+            # connection (or the whole feature) yet - not worth a warning-level log per frame.
+            log.info(
                 'Cannot resolve PROJECT for REQNUM=%s: ROBOTIC_BACKEND_URL/ROBOTIC_BACKEND_TOKEN '
                 'not configured.', self.REQNUM
             )
             return
 
-        client = BackendClient(
-            settings.ROBOTIC_BACKEND_URL, settings.ROBOTIC_BACKEND_TOKEN,
-            timeout=settings.ROBOTIC_BACKEND_TIMEOUT
-        )
         try:
-            tasks = client.get_tasks()
+            task_map = _get_task_map()
         except BackendUnavailable as e:
             log.warning('Could not resolve PROJECT for REQNUM=%s: %s', self.REQNUM, e)
             return
 
-        task_map = {str(task['id']): task.get('project') for task in tasks}
         self.PROJECT = task_map.get(str(self.REQNUM))
 
     def link_related(self, header):

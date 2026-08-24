@@ -34,6 +34,16 @@ class Command(BaseCommand):
         except BackendUnavailable as e:
             raise CommandError('Could not sync projects: %s' % e) from e
 
+        # An empty response almost certainly means something's wrong on the backend side (e.g.
+        # a misconfigured service account, or a transient empty page) rather than "all projects
+        # were deleted" - treat it as a failure rather than wiping the local mirror. A stale
+        # mirror is safer than an empty one, since PROJECT=None frames are superuser-only (D5).
+        if not projects and Project.objects.exists():
+            raise CommandError(
+                'Backend returned zero projects while the local mirror is non-empty - refusing '
+                'to wipe it. Aborting without making any changes.'
+            )
+
         User = get_user_model()
 
         created, updated, unchanged = 0, 0, 0

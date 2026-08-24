@@ -20,6 +20,10 @@ class BackendUnavailable(Exception):
 class BackendClient:
     """Thin wrapper around the pyobs-robotic-backend REST API."""
 
+    # Hard cap on pages followed for a paginated endpoint, so a backend that keeps returning
+    # "next" (buggy pagination, or a malicious/misbehaving server) can't loop forever.
+    MAX_PAGES = 5000
+
     def __init__(self, base_url, token, timeout=5):
         """Create a new client.
 
@@ -55,10 +59,22 @@ class BackendClient:
     def _get_all_pages(self, url):
         """Follow a DRF-paginated ("next") endpoint and return the concatenated results."""
         results = []
+        pages = 0
         while url:
+            pages += 1
+            if pages > self.MAX_PAGES:
+                raise BackendUnavailable(
+                    'Backend returned more than %d pages for %s - aborting.'
+                    % (self.MAX_PAGES, url)
+                )
+
             data = self._get(url)
-            results.extend(data.get('results', data if isinstance(data, list) else []))
-            url = data.get('next') if isinstance(data, dict) else None
+            if isinstance(data, dict):
+                results.extend(data.get('results', []))
+                url = data.get('next')
+            else:
+                results.extend(data)
+                url = None
         return results
 
     def get_projects(self):

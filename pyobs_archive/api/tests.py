@@ -9,7 +9,8 @@ from django.core.management.base import CommandError
 from django.test import TestCase, RequestFactory
 from rest_framework.exceptions import ParseError
 
-from pyobs_archive.api.backend import BackendUnavailable
+from pyobs_archive.api import models as models_module
+from pyobs_archive.api.backend import BackendClient, BackendUnavailable
 from pyobs_archive.api.models import Frame, Project
 from pyobs_archive.api.views import filter_frames, sort_frames
 
@@ -222,6 +223,13 @@ class FrameIngestPathSafetyTests(TestCase):
 class FrameProjectIngestTests(TestCase):
     """PROJECT association: FITS header, REQNUM->project fallback via the robotic backend."""
 
+    def setUp(self):
+        # resolve_project_from_reqnum() caches the task map in-process (module-level, TTL-based)
+        # so tests that expect a fresh BackendClient.get_tasks() call don't see a previous
+        # test's cached result.
+        models_module._reset_task_map_cache()
+        self.addCleanup(models_module._reset_task_map_cache)
+
     def test_project_read_from_header(self):
         frame = Frame()
         frame.add_fits_header(_header(PROJECT='XYZ001'))
@@ -295,6 +303,27 @@ class FrameProjectIngestTests(TestCase):
             frame.resolve_project_from_reqnum()
         self.assertIsNone(frame.PROJECT)
 
+    @mock.patch('pyobs_archive.api.models.BackendClient')
+    def test_task_map_is_cached_across_frames(self, mock_client_cls):
+        mock_client_cls.return_value.get_tasks.return_value = [
+            {'id': 1, 'project': 'A'}, {'id': 2, 'project': 'B'},
+        ]
+
+        frame1 = Frame()
+        frame1.add_fits_header(_header(REQNUM='1'))
+        frame2 = Frame()
+        frame2.add_fits_header(_header(REQNUM='2'))
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            frame1.resolve_project_from_reqnum()
+            frame2.resolve_project_from_reqnum()
+
+        self.assertEqual(frame1.PROJECT, 'A')
+        self.assertEqual(frame2.PROJECT, 'B')
+        # a burst of ingests shouldn't trigger a fresh get_tasks() fetch per frame
+        mock_client_cls.return_value.get_tasks.assert_called_once()
+
 
 def _mock_response(json_data, status_code=200):
     response = mock.Mock()
@@ -305,6 +334,51 @@ def _mock_response(json_data, status_code=200):
     else:
         response.raise_for_status.return_value = None
     return response
+
+
+class BackendClientPaginationTests(TestCase):
+    """BackendClient._get_all_pages: DRF-style {results, next} pages, bare-list responses, and
+    the max-pages abort."""
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_follows_dict_pages_via_next(self, mock_get):
+        page1 = _mock_response({
+            'next': 'https://backend.example.org/api/projects/?page=2',
+            'results': [{'code': 'A'}],
+        })
+        page2 = _mock_response({'next': None, 'results': [{'code': 'B'}]})
+        mock_get.side_effect = [page1, page2]
+
+        client = BackendClient('https://backend.example.org', 'tok')
+        result = client.get_projects()
+
+        self.assertEqual(result, [{'code': 'A'}, {'code': 'B'}])
+        self.assertEqual(mock_get.call_count, 2)
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_follows_bare_list_response_without_crashing(self, mock_get):
+        # a non-paginated endpoint (or a backend that returns a bare list) must not hit the
+        # dict-only `.get(...)` branch
+        mock_get.return_value = _mock_response([{'code': 'A'}, {'code': 'B'}])
+
+        client = BackendClient('https://backend.example.org', 'tok')
+        result = client.get_projects()
+
+        self.assertEqual(result, [{'code': 'A'}, {'code': 'B'}])
+        mock_get.assert_called_once()
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_aborts_after_max_pages(self, mock_get):
+        mock_get.return_value = _mock_response({
+            'next': 'https://backend.example.org/api/projects/?page=next', 'results': [],
+        })
+
+        client = BackendClient('https://backend.example.org', 'tok')
+        client.MAX_PAGES = 3
+
+        with self.assertRaises(BackendUnavailable):
+            client.get_projects()
+        self.assertEqual(mock_get.call_count, 3)
 
 
 class SyncProjectsCommandTests(TestCase):
@@ -366,15 +440,48 @@ class SyncProjectsCommandTests(TestCase):
         self.assertEqual(list(project.users.values_list('username', flat=True)), ['alice'])
 
     @mock.patch('pyobs_archive.api.backend.requests.get')
-    def test_deletes_projects_removed_on_backend(self, mock_get):
+    def test_deletes_projects_missing_from_a_non_empty_response(self, mock_get):
         Project.objects.create(code='STALE', name='Stale', public=False)
-        mock_get.return_value = _mock_response({'next': None, 'results': []})
+        Project.objects.create(code='KEEP', name='Keep', public=False)
+        mock_get.return_value = _mock_response({
+            'next': None,
+            'results': [{'code': 'KEEP', 'name': 'Keep', 'public': False, 'users': []}],
+        })
 
         with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
                             ROBOTIC_BACKEND_TOKEN='tok'):
             call_command('sync_projects')
 
         self.assertFalse(Project.objects.filter(code='STALE').exists())
+        self.assertTrue(Project.objects.filter(code='KEEP').exists())
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_empty_response_does_not_wipe_existing_mirror(self, mock_get):
+        # An empty projects list from the backend is far more likely to indicate a problem
+        # (misconfigured service account, transient bad response) than "every project was
+        # deleted" - refuse to wipe a non-empty local mirror in that case (a stale mirror is
+        # safer than an empty one, since PROJECT=None frames are superuser-only, D5).
+        project = Project.objects.create(code='KEEP', name='Keep', public=True)
+        project.users.set([self.alice])
+        mock_get.return_value = _mock_response({'next': None, 'results': []})
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            with self.assertRaises(CommandError):
+                call_command('sync_projects')
+
+        project.refresh_from_db()
+        self.assertEqual(list(project.users.values_list('username', flat=True)), ['alice'])
+
+    @mock.patch('pyobs_archive.api.backend.requests.get')
+    def test_empty_response_is_fine_when_mirror_already_empty(self, mock_get):
+        mock_get.return_value = _mock_response({'next': None, 'results': []})
+
+        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
+                            ROBOTIC_BACKEND_TOKEN='tok'):
+            call_command('sync_projects')  # should not raise
+
+        self.assertEqual(Project.objects.count(), 0)
 
     def test_aborts_when_backend_not_configured(self):
         with self.settings(ROBOTIC_BACKEND_URL='', ROBOTIC_BACKEND_TOKEN=''):
