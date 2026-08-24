@@ -178,7 +178,14 @@ class Frame(models.Model):
             # set it
             setattr(self, attr, header[keyword])
 
-    def get_info(self):
+    def get_info(self, user=None):
+        """Build the dict representation returned by the API.
+
+        Args:
+            user: requesting user, used to filter `related_frames` down to what they may access
+                (see specs/plans/2026-08-20-archive-project-access-control.md, D10). No-op when
+                `user` is None or `settings.PROJECT_ACCESS_CONTROL` is off.
+        """
         # init info and copy some fields
         info = {k: getattr(self, k) for k in ['id', 'basename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
                                               'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME',
@@ -195,8 +202,12 @@ class Frame(models.Model):
             info['OBJECT'] = None
             info['FILTER'] = None
 
-        # add related frames
-        info['related_frames'] = [f.id for f in self.related.all()]
+        # add related frames, dropping any the requesting user can't access (D10)
+        related = self.related.all()
+        if user is not None and settings.PROJECT_ACCESS_CONTROL:
+            from pyobs_archive.api.permissions import can_access_frame  # local: avoid import cycle
+            related = [f for f in related if can_access_frame(user, f)]
+        info['related_frames'] = [f.id for f in related]
 
         # add url
         info['url'] = 'frames/%d/download/' % self.id
