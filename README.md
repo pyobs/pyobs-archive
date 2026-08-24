@@ -32,6 +32,10 @@ All settings are controlled by environment variables. Copy `pyobs_archive/local_
 | `KEYCLOAK_REDIRECT_URI` | (empty) | Must match the redirect URI registered for this client in Keycloak |
 | `KEYCLOAK_IDP_HINT` / `KEYCLOAK_IDP_LABEL` | (empty) | Optional one-click IdP login: hint passed to Keycloak as `kc_idp_hint` (skips its login/IdP-selection page) and the label for the login page's IdP button, e.g. `gwdg` / `GWDG` |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | (empty) | Settings-configured superuser, synced after every `migrate` (see [Running](#running)); leave unset to skip and use `createsuperuser` instead |
+| `ROBOTIC_BACKEND_URL` | (empty) | Base URL of the pyobs-robotic-backend, used to mirror projects/members (`manage.py sync_projects`) and to resolve `REQNUM` to a project at ingest time |
+| `ROBOTIC_BACKEND_TOKEN` | (empty) | DRF token of a backend service account (used with `ROBOTIC_BACKEND_URL`) |
+| `ROBOTIC_BACKEND_TIMEOUT` | `5` | Timeout in seconds for requests to the robotic backend |
+| `PROJECT_ACCESS_CONTROL` | `false` | Restrict frame access to project members (+ public projects); unset/empty/`false` keeps today's behavior (no access filtering) |
 
 ## Running
 
@@ -74,6 +78,23 @@ docker compose exec web uv run manage.py createsuperuser        # yourself
 docker compose exec web uv run manage.py createsuperuser        # e.g. "pyobs", for ingest
 docker compose exec web uv run manage.py drf_create_token pyobs
 ```
+
+### Project access control (optional)
+
+With `ROBOTIC_BACKEND_URL`/`ROBOTIC_BACKEND_TOKEN` configured, `manage.py sync_projects` mirrors
+projects and their members/public flag from the pyobs-robotic-backend locally, so access checks
+stay fast without a live per-request call. Run it once manually after configuring the backend
+connection, then schedule it periodically (cron/systemd timer, e.g. every 5-10 min) and whenever
+projects change on the backend:
+
+```bash
+uv run manage.py sync_projects
+```
+
+`PROJECT_ACCESS_CONTROL` stays off by default, so unset/empty leaves today's behavior unchanged
+(no per-project filtering) even with the backend connection configured. See
+[`specs/plans/2026-08-20-archive-project-access-control.md`](specs/plans/2026-08-20-archive-project-access-control.md)
+for the full design and rollout sequence.
 
 
 ## Changelog

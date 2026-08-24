@@ -1071,6 +1071,7 @@ dependencies = [
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "psycopg2-binary" },
     { name = "pyobs-auth" },
+    { name = "requests" },
     { name = "whitenoise" },
     { name = "zipstream" },
 ]
@@ -1089,6 +1090,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
     { name = "pyobs-auth", specifier = ">=2.0.0.dev9" },
+    { name = "requests", specifier = ">=2.31" },
     { name = "whitenoise", specifier = ">=6.7" },
     { name = "zipstream", specifier = ">=1.1.4" },
 ]

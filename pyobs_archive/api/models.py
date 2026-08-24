@@ -1,6 +1,7 @@
 import math
 import logging
 import subprocess
+import time
 from urllib.parse import urljoin
 import os
 import io
@@ -12,8 +13,63 @@ from django.conf import settings
 from django.utils.timezone import make_aware
 
 from pyobs_archive.api.utils import FilenameFormatter
+from pyobs_archive.api.backend import BackendClient, BackendUnavailable
 
 log = logging.getLogger(__name__)
+
+# In-process cache for the REQNUM (task id) -> project code map used by
+# Frame.resolve_project_from_reqnum() (see specs/plans/2026-08-20-archive-project-access-control.md,
+# D4). A short TTL keeps a burst of ingests (e.g. overnight) from triggering a full paginated
+# `get_tasks()` fetch per frame, while still picking up new tasks reasonably quickly.
+_TASK_MAP_CACHE_TTL = 60  # seconds
+_task_map_cache = None
+_task_map_cache_expires = 0.0
+
+
+def _reset_task_map_cache():
+    """Clear the in-process task map cache. Mainly a test hook."""
+    global _task_map_cache, _task_map_cache_expires
+    _task_map_cache = None
+    _task_map_cache_expires = 0.0
+
+
+def _get_task_map():
+    """Fetch (and cache) REQNUM (task id) -> project code from the robotic backend.
+
+    Raises:
+        BackendUnavailable: if the backend can't be reached. Failures aren't cached, so the
+            next call retries.
+    """
+    global _task_map_cache, _task_map_cache_expires
+
+    now = time.monotonic()
+    if _task_map_cache is not None and now < _task_map_cache_expires:
+        return _task_map_cache
+
+    client = BackendClient(
+        settings.ROBOTIC_BACKEND_URL, settings.ROBOTIC_BACKEND_TOKEN,
+        timeout=settings.ROBOTIC_BACKEND_TIMEOUT
+    )
+    tasks = client.get_tasks()
+
+    task_map = {str(task['id']): task.get('project') for task in tasks}
+    _task_map_cache = task_map
+    _task_map_cache_expires = now + _TASK_MAP_CACHE_TTL
+    return task_map
+
+
+class Project(models.Model):
+    """Local mirror of a pyobs-robotic-backend Project, kept up to date by the
+    `sync_projects` management command (see specs/plans/2026-08-20-archive-project-access-control.md,
+    §3). Used to decide which users may access frames of which project.
+    """
+    code = models.CharField('Project code', max_length=10, primary_key=True)
+    name = models.CharField('Project name', max_length=200)
+    public = models.BooleanField('Visible to every authenticated user', default=False)
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='projects', blank=True)
+
+    def __str__(self):
+        return self.code
 
 
 class Frame(models.Model):
@@ -53,6 +109,7 @@ class Frame(models.Model):
     related = models.ManyToManyField("self", symmetrical=False)
     REQNUM = models.CharField('Unique number for request', max_length=30, null=True, default=None)
     OBSNUM = models.CharField('Observation number (per-night)', max_length=30, null=True, default=None)
+    PROJECT = models.CharField('Project code', max_length=10, null=True, default=None, db_index=True)
 
     def __str__(self):
         return self.basename
@@ -83,7 +140,7 @@ class Frame(models.Model):
                     'TEL-RA', 'TEL-DEC', 'TEL-ALT', 'TEL-AZ', 'TEL-FOCU',
                     'SUNALT', 'SUNDIST', 'MOONALT', 'MOONDIST', 'MOONFRAC',
                     'IMAGETYP', 'XORGSUBF', 'YORGSUBF', 'OBJECT', 'EXPTIME',
-                    'FILTER', 'DATAMEAN', 'REQNUM', 'OBSNUM']
+                    'FILTER', 'DATAMEAN', 'REQNUM', 'OBSNUM', 'PROJECT']
         for k in keywords:
             self._set_header(header, k)
 
@@ -125,7 +182,7 @@ class Frame(models.Model):
         # init info and copy some fields
         info = {k: getattr(self, k) for k in ['id', 'basename', 'SITEID', 'TELID', 'INSTRUME', 'RLEVEL',
                                               'DATE_OBS', 'FILTER', 'OBJECT', 'EXPTIME',
-                                              'REQNUM', 'OBSNUM']}
+                                              'REQNUM', 'OBSNUM', 'PROJECT']}
 
         # add obstype
         info['OBSTYPE'] = self.IMAGETYP
@@ -146,6 +203,33 @@ class Frame(models.Model):
 
         # finished
         return info
+
+    def resolve_project_from_reqnum(self):
+        """Resolve PROJECT via REQNUM -> Task.id -> project, using the robotic backend's task
+        list, as a fallback for as long as the PROJECT FITS keyword isn't written upstream yet
+        (see specs/plans/2026-08-20-archive-project-access-control.md, D4). No-op if PROJECT is
+        already set, REQNUM is missing, or the backend isn't configured/reachable - in the
+        latter case the frame simply stays unassociated (private, D5) and a warning is logged.
+        """
+        if self.PROJECT is not None or not self.REQNUM:
+            return
+
+        if not settings.ROBOTIC_BACKEND_URL or not settings.ROBOTIC_BACKEND_TOKEN:
+            # Expected/common state for any install that hasn't configured the backend
+            # connection (or the whole feature) yet - not worth a warning-level log per frame.
+            log.info(
+                'Cannot resolve PROJECT for REQNUM=%s: ROBOTIC_BACKEND_URL/ROBOTIC_BACKEND_TOKEN '
+                'not configured.', self.REQNUM
+            )
+            return
+
+        try:
+            task_map = _get_task_map()
+        except BackendUnavailable as e:
+            log.warning('Could not resolve PROJECT for REQNUM=%s: %s', self.REQNUM, e)
+            return
+
+        self.PROJECT = task_map.get(str(self.REQNUM))
 
     def link_related(self, header):
         """Link related images.
@@ -219,6 +303,10 @@ class Frame(models.Model):
         # set headers
         img.path = path
         img.add_fits_header(fits_file['SCI'].header)
+
+        # fall back to REQNUM -> project resolution until the PROJECT FITS keyword is written
+        # upstream (see specs/plans/2026-08-20-archive-project-access-control.md, D4)
+        img.resolve_project_from_reqnum()
 
         # write to database
         log.info('Writing to database...')
