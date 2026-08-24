@@ -429,6 +429,16 @@ class FrameAccessEndpointTests(TestCase):
             })
         self.assertEqual(response.status_code, 404)
 
+    def test_zip_view_requires_authentication(self):
+        # regression test for #47: zip_view wasn't wrapped in @api_view(...), so its
+        # @permission_classes([IsAuthenticated]) decorator had no effect and anonymous requests
+        # could reach it, unlike every other frame-exposing endpoint in this file
+        response = self.client.get('/frames/zip/')
+        self.assertEqual(response.status_code, 401)
+
+        response = self.client.post('/frames/zip/', {'frame_ids[]': [self.frame_public.id]})
+        self.assertEqual(response.status_code, 401)
+
     # -- per-frame endpoints: frame_view, download_view, headers_view, preview_view,
     #    catalog_view all share the central _frame() access check --------------------------
 

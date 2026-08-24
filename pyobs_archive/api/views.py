@@ -327,6 +327,7 @@ def preview_view(request, frame_id):
         return HttpResponse(bio.getvalue(), content_type="image/png")
 
 
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def zip_view(request):
     if request.method == 'POST':
