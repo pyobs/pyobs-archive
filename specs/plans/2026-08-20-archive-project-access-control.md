@@ -6,7 +6,8 @@ FITS keyword (alongside `REQNUM`/`OBSNUM`; see §1 — until it lands, the `REQN
 carries the association).
 Repos: pyobs-archive, pyobs-robotic-backend, pyobs-core.
 
-Status: planned
+Status: done (sections 1-5, 7 shipped in #45, #46; section 6 backfill deliberately skipped —
+see §6; section 8 frontend column skipped as optional)
 
 ## Problem
 
@@ -93,12 +94,12 @@ there.
 
 ### 1. Frame → project association — `pyobs_archive/api/models.py`
 
-- [ ] `PROJECT = models.CharField(max_length=10, null=True, default=None, db_index=True)` on
+- [x] `PROJECT = models.CharField(max_length=10, null=True, default=None, db_index=True)` on
       `Frame` + migration `api/migrations/0012_frame_project.py` (numbering follows the existing
       sequence — `0011_alter_frame_id.py` is the current head).
-- [ ] Add `'PROJECT'` to the keyword list in `add_fits_header()` (absent header → stays `None`).
-- [ ] Expose `PROJECT` in `get_info()` (frontend column + API consumers).
-- [ ] `Frame.ingest()`: when `PROJECT` is absent but `REQNUM` is present, resolve
+- [x] Add `'PROJECT'` to the keyword list in `add_fits_header()` (absent header → stays `None`).
+- [x] Expose `PROJECT` in `get_info()` (frontend column + API consumers).
+- [x] `Frame.ingest()`: when `PROJECT` is absent but `REQNUM` is present, resolve
       `REQNUM → project` via the synced task map (§2) and set `PROJECT`; backend/sync
       unavailable → log a warning, leave `None` (private, D5).
 - [ ] **Upstream (pyobs-core, tracked in the companion plan):** `Mastermind.
@@ -108,36 +109,36 @@ there.
 
 ### 2. Backend client — `pyobs_archive/api/backend.py` (new)
 
-- [ ] `BackendClient(base_url, token, timeout=5)` wrapping:
+- [x] `BackendClient(base_url, token, timeout=5)` wrapping:
       - `get_projects()` → `GET {url}/api/projects/` with `Authorization: Token <token>` —
         **follow pagination** (backend paginates, page size 100) → list of
         `{code, name, public, users: [username, …]}`.
       - `get_tasks()` → `GET {url}/api/tasks/` → list of `{id, project}` (the REQNUM→project
         map for ingest + backfill).
-- [ ] Raise `BackendUnavailable` on network/timeout/5xx; callers decide (sync aborts loudly,
+- [x] Raise `BackendUnavailable` on network/timeout/5xx; callers decide (sync aborts loudly,
       ingest logs and continues unassociated).
-- [ ] Same interface reused by Option A later (per-user resolution) — no view changes needed
+- [x] Same interface reused by Option A later (per-user resolution) — no view changes needed
       when that lands.
 
 ### 3. Project/user mirror + sync — `pyobs_archive/api/models.py`,
    `pyobs_archive/api/management/commands/sync_projects.py`
 
-- [ ] Mirror models: `Project(code PK, name, public)` + memberships (either a `users` M2M to
+- [x] Mirror models: `Project(code PK, name, public)` + memberships (either a `users` M2M to
       `django.contrib.auth.models.User` or a membership table keyed by username — matches the
       backend's `users` payload and keeps access checks local).
-- [ ] `manage.py sync_projects`: pull via `BackendClient.get_projects()` (service token),
+- [x] `manage.py sync_projects`: pull via `BackendClient.get_projects()` (service token),
       upsert mirror (delete locally-removed projects, update `public`, reconcile members by
       username). Log a diff summary; non-zero exit on backend failure.
-- [ ] README/.env.example: document running it periodically (cron/systemd timer, e.g. every
+- [x] README/.env.example: document running it periodically (cron/systemd timer, e.g. every
       5–10 min) and on backend project changes.
 
 ### 4. Access layer — `pyobs_archive/api/permissions.py` (new)
 
-- [ ] `accessible_projects(user) -> set[str] | None`: `None` for superusers/staff (everything),
+- [x] `accessible_projects(user) -> set[str] | None`: `None` for superusers/staff (everything),
       else `{code}` for `public=True` projects ∪ projects the user is a member of (mirror).
-- [ ] `can_access_frame(user, frame) -> bool`: superuser/staff → `True`; else
+- [x] `can_access_frame(user, frame) -> bool`: superuser/staff → `True`; else
       `frame.PROJECT is not None and frame.PROJECT in accessible_projects(user)`.
-- [ ] `frame_access_q(user) -> Q` for queryset filtering (`frames_view`, `aggregate_view`,
+- [x] `frame_access_q(user) -> Q` for queryset filtering (`frames_view`, `aggregate_view`,
       `zip_view_get`): `Q(PROJECT__in=accessible_projects(user))` for non-superusers.
 
 ### 5. Endpoint filtering — `pyobs_archive/api/views.py`
@@ -152,25 +153,31 @@ there.
 | `related_view` | filter the related queryset by access (an accessible frame's related set may contain other projects' frames). |
 | `create_view`, `delete_view` | unchanged (`IsAdminUser`). |
 
-- [ ] `Frame.get_info()`: drop `related_frames` ids the user cannot access (pass the request
+- [x] `Frame.get_info()`: drop `related_frames` ids the user cannot access (pass the request
       user through, or post-filter in the views).
-- [ ] All checks gated on `settings.PROJECT_ACCESS_CONTROL` (off → today's behavior).
+- [x] All checks gated on `settings.PROJECT_ACCESS_CONTROL` (off → today's behavior).
 
 ### 6. Backfill — part of `sync_projects` or a `sync_frames_projects` command
 
-- [ ] Fetch the task→project map once (`BackendClient.get_tasks()`), update every
-      `Frame` with a `REQNUM` and `PROJECT IS NULL`; frames whose `REQNUM` no longer exists in
-      the backend stay `None` (private, D5).
+**Skipped by decision (2026-08-24).** Not implementing a backfill command. Consequence:
+historical frames ingested before this feature existed keep `PROJECT = None` forever unless
+someone associates them manually — under D5 that means they stay superuser-only indefinitely
+once `PROJECT_ACCESS_CONTROL` is flipped on, for any deployment that doesn't run a backfill of
+its own. Only newly-ingested frames get associated, via the `REQNUM` fallback in `Frame.ingest()`
+(§1) or the upstream `PROJECT` FITS keyword once it lands. If a deployment needs historical
+frames visible, someone can still write the backfill later — the plan text above (§6 fetch
+task→project map, update `PROJECT IS NULL` frames with a `REQNUM`) remains a valid design if
+picked back up.
 
 ### 7. Settings/config — `pyobs_archive/settings.py`, `.env.example`, `README.md`
 
-- [ ] `ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')`
-- [ ] `ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')` (DRF token of a
+- [x] `ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')`
+- [x] `ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')` (DRF token of a
       backend superuser/service account)
-- [ ] `PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in
+- [x] `PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in
       ('1', 'true', 'yes')`
-- [ ] `ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', '5'))`
-- [ ] README env table + `.env.example` rows; note that unset/empty disables access control.
+- [x] `ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', '5'))`
+- [x] README env table + `.env.example` rows; note that unset/empty disables access control.
 
 ### 8. Frontend — `pyobs_archive/frontend` (optional)
 
