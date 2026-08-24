@@ -10,10 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+import logging
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from rest_framework.authentication import TokenAuthentication
+
+_settings_log = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -237,6 +240,24 @@ FILENAME_FORMATTER = os.environ.get('FILENAME_FORMATTER') or None
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
+
+# pyobs-robotic-backend connection, used to mirror projects/users (`manage.py sync_projects`)
+# and to resolve REQNUM -> project at ingest time - see
+# specs/plans/2026-08-20-archive-project-access-control.md. Leaving PROJECT_ACCESS_CONTROL unset
+# (or falsy) keeps today's behavior (no per-project access filtering); it's independent of
+# whether the backend connection itself is configured.
+ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')
+ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')
+_ROBOTIC_BACKEND_TIMEOUT_DEFAULT = 5.0
+try:
+    ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', _ROBOTIC_BACKEND_TIMEOUT_DEFAULT))
+except ValueError:
+    _settings_log.warning(
+        "Invalid ROBOTIC_BACKEND_TIMEOUT=%r, falling back to %s seconds.",
+        os.environ.get('ROBOTIC_BACKEND_TIMEOUT'), _ROBOTIC_BACKEND_TIMEOUT_DEFAULT
+    )
+    ROBOTIC_BACKEND_TIMEOUT = _ROBOTIC_BACKEND_TIMEOUT_DEFAULT
+PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in ('1', 'true', 'yes')
 
 # try to import a local_settings.py
 try:
