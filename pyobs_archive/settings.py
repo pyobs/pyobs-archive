@@ -88,7 +88,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'pyobs_archive.urls'
 
-# Distinct from other pyobs Django apps (e.g. robotic-backend, web-admin) so browser
+# Distinct from other pyobs Django apps (e.g. portal, web-admin) so browser
 # cookies don't collide when run on localhost at once - cookies are scoped by host, not port.
 SESSION_COOKIE_NAME = 'archive_sessionid'
 CSRF_COOKIE_NAME = 'archive_csrftoken'
