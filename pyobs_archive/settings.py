@@ -246,22 +246,26 @@ FILENAME_FORMATTER = os.environ.get('FILENAME_FORMATTER') or None
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
 
-# pyobs-robotic-backend connection, used to mirror projects/users (`manage.py sync_projects`)
+# pyobs-portal connection, used to mirror projects/users (`manage.py sync_projects`)
 # and to resolve REQNUM -> project at ingest time - see
 # specs/plans/2026-08-20-archive-project-access-control.md. Leaving PROJECT_ACCESS_CONTROL unset
 # (or falsy) keeps today's behavior (no per-project access filtering); it's independent of
-# whether the backend connection itself is configured.
-ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')
-ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')
-_ROBOTIC_BACKEND_TIMEOUT_DEFAULT = 5.0
+# whether the portal connection itself is configured.
+# PORTAL_URL/PORTAL_TOKEN/PORTAL_TIMEOUT renamed from ROBOTIC_BACKEND_URL/_TOKEN/_TIMEOUT
+# (pyobs-robotic-backend -> pyobs-portal rename); the old names are still read as a fallback
+# for one release so existing deployments don't silently break.
+PORTAL_URL = os.environ.get('PORTAL_URL') or os.environ.get('ROBOTIC_BACKEND_URL', '')
+PORTAL_TOKEN = os.environ.get('PORTAL_TOKEN') or os.environ.get('ROBOTIC_BACKEND_TOKEN', '')
+_PORTAL_TIMEOUT_DEFAULT = 5.0
+_portal_timeout_raw = os.environ.get('PORTAL_TIMEOUT') or os.environ.get('ROBOTIC_BACKEND_TIMEOUT', _PORTAL_TIMEOUT_DEFAULT)
 try:
-    ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', _ROBOTIC_BACKEND_TIMEOUT_DEFAULT))
+    PORTAL_TIMEOUT = float(_portal_timeout_raw)
 except ValueError:
     _settings_log.warning(
-        "Invalid ROBOTIC_BACKEND_TIMEOUT=%r, falling back to %s seconds.",
-        os.environ.get('ROBOTIC_BACKEND_TIMEOUT'), _ROBOTIC_BACKEND_TIMEOUT_DEFAULT
+        "Invalid PORTAL_TIMEOUT=%r, falling back to %s seconds.",
+        _portal_timeout_raw, _PORTAL_TIMEOUT_DEFAULT
     )
-    ROBOTIC_BACKEND_TIMEOUT = _ROBOTIC_BACKEND_TIMEOUT_DEFAULT
+    PORTAL_TIMEOUT = _PORTAL_TIMEOUT_DEFAULT
 PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in ('1', 'true', 'yes')
 
 # try to import a local_settings.py
