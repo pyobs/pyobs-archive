@@ -1,4 +1,4 @@
-"""Client for the pyobs-robotic-backend API.
+"""Client for the pyobs-portal API.
 
 Used to learn projects, their members and their public flag (`sync_projects` management
 command, §3 of specs/plans/2026-08-20-archive-project-access-control.md) and to resolve
@@ -13,14 +13,14 @@ import requests
 log = logging.getLogger(__name__)
 
 
-class BackendUnavailable(Exception):
-    """Raised when the robotic backend cannot be reached or returns a server error."""
+class PortalUnavailable(Exception):
+    """Raised when the portal cannot be reached or returns a server error."""
 
 
-class BackendClient:
-    """Thin wrapper around the pyobs-robotic-backend REST API."""
+class PortalClient:
+    """Thin wrapper around the pyobs-portal REST API."""
 
-    # Hard cap on pages followed for a paginated endpoint, so a backend that keeps returning
+    # Hard cap on pages followed for a paginated endpoint, so a portal that keeps returning
     # "next" (buggy pagination, or a malicious/misbehaving server) can't loop forever.
     MAX_PAGES = 5000
 
@@ -28,8 +28,8 @@ class BackendClient:
         """Create a new client.
 
         Args:
-            base_url: Base URL of the backend, e.g. "https://backend.example.org".
-            token: DRF token of a backend service account, sent as "Authorization: Token <token>".
+            base_url: Base URL of the portal, e.g. "https://portal.example.org".
+            token: DRF token of a portal service account, sent as "Authorization: Token <token>".
             timeout: Request timeout in seconds.
         """
         self.base_url = base_url.rstrip('/')
@@ -43,16 +43,16 @@ class BackendClient:
         try:
             response = requests.get(url, headers=self._headers(), timeout=self.timeout)
         except requests.RequestException as e:
-            raise BackendUnavailable('Could not reach backend at %s: %s' % (url, e)) from e
+            raise PortalUnavailable('Could not reach portal at %s: %s' % (url, e)) from e
 
         if response.status_code >= 500:
-            raise BackendUnavailable(
-                'Backend returned status %d for %s' % (response.status_code, url)
+            raise PortalUnavailable(
+                'Portal returned status %d for %s' % (response.status_code, url)
             )
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            raise BackendUnavailable('Backend request to %s failed: %s' % (url, e)) from e
+            raise PortalUnavailable('Portal request to %s failed: %s' % (url, e)) from e
 
         return response.json()
 
@@ -63,8 +63,8 @@ class BackendClient:
         while url:
             pages += 1
             if pages > self.MAX_PAGES:
-                raise BackendUnavailable(
-                    'Backend returned more than %d pages for %s - aborting.'
+                raise PortalUnavailable(
+                    'Portal returned more than %d pages for %s - aborting.'
                     % (self.MAX_PAGES, url)
                 )
 

@@ -1,10 +1,10 @@
 # Plan: Project-based access control for pyobs-archive
 
-Tracks pyobs/pyobs-archive#42. Depends on pyobs/pyobs-robotic-backend#79 (per-project `public`
+Tracks pyobs/pyobs-archive#42. Depends on pyobs/pyobs-portal#79 (per-project `public`
 flag; closed, already implemented) and on a pyobs-core mastermind change to write the `PROJECT`
 FITS keyword (alongside `REQNUM`/`OBSNUM`; see §1 — until it lands, the `REQNUM` fallback
 carries the association).
-Repos: pyobs-archive, pyobs-robotic-backend, pyobs-core.
+Repos: pyobs-archive, pyobs-portal, pyobs-core.
 
 Status: done (sections 1-5, 7 shipped in #45, #46; section 6 backfill deliberately skipped —
 see §6; section 8 frontend column skipped as optional)
@@ -20,8 +20,8 @@ this user see" at all — the `Frame` model has no project association
 
 Observations are often proprietary: a user should only see images of projects they are a member
 of, plus projects explicitly marked public. Project membership and the public flag are owned by
-`pyobs-robotic-backend` (`Project` model: `code` PK, `name`, `priority`, `users` M2M, `public`
-flag — `pyobs_robotic_backend/api/models.py`). The archive must learn projects and users from
+`pyobs-portal` (`Project` model: `code` PK, `name`, `priority`, `users` M2M, `public`
+flag — `pyobs_portal/api/models.py`). The archive must learn projects and users from
 there.
 
 ## What exists today
@@ -57,8 +57,8 @@ there.
    see frames).
 3. **Backend connection: local sync first (Option B), live per-request query later (Option A).**
    A `sync_projects` management command mirrors projects + memberships from the backend's
-   admin-authenticated API using a service-account token (`ROBOTIC_BACKEND_URL` +
-   `ROBOTIC_BACKEND_TOKEN`), so access checks are local, fast, and work for local
+   admin-authenticated API using a service-account token (`PORTAL_URL` +
+   `PORTAL_TOKEN`), so access checks are local, fast, and work for local
    Django-username users. Option A (forward the user's own Keycloak Bearer token from
    `Profile.access_token`, or a backend "accessible projects for user" endpoint) is the later
    enhancement behind the same interface.
@@ -107,15 +107,15 @@ there.
       "Project code")` next to `TASK`/`REQNUM`/`OBSNUM`; `Task.project` already holds the code.
       Until released, ingest relies on the `REQNUM` fallback.
 
-### 2. Backend client — `pyobs_archive/api/backend.py` (new)
+### 2. Backend client — `pyobs_archive/api/portal.py` (new, later renamed from `backend.py`)
 
-- [x] `BackendClient(base_url, token, timeout=5)` wrapping:
+- [x] `PortalClient(base_url, token, timeout=5)` wrapping:
       - `get_projects()` → `GET {url}/api/projects/` with `Authorization: Token <token>` —
         **follow pagination** (backend paginates, page size 100) → list of
         `{code, name, public, users: [username, …]}`.
       - `get_tasks()` → `GET {url}/api/tasks/` → list of `{id, project}` (the REQNUM→project
         map for ingest + backfill).
-- [x] Raise `BackendUnavailable` on network/timeout/5xx; callers decide (sync aborts loudly,
+- [x] Raise `PortalUnavailable` on network/timeout/5xx; callers decide (sync aborts loudly,
       ingest logs and continues unassociated).
 - [x] Same interface reused by Option A later (per-user resolution) — no view changes needed
       when that lands.
@@ -126,7 +126,7 @@ there.
 - [x] Mirror models: `Project(code PK, name, public)` + memberships (either a `users` M2M to
       `django.contrib.auth.models.User` or a membership table keyed by username — matches the
       backend's `users` payload and keeps access checks local).
-- [x] `manage.py sync_projects`: pull via `BackendClient.get_projects()` (service token),
+- [x] `manage.py sync_projects`: pull via `PortalClient.get_projects()` (service token),
       upsert mirror (delete locally-removed projects, update `public`, reconcile members by
       username). Log a diff summary; non-zero exit on backend failure.
 - [x] README/.env.example: document running it periodically (cron/systemd timer, e.g. every
@@ -171,12 +171,12 @@ picked back up.
 
 ### 7. Settings/config — `pyobs_archive/settings.py`, `.env.example`, `README.md`
 
-- [x] `ROBOTIC_BACKEND_URL = os.environ.get('ROBOTIC_BACKEND_URL', '')`
-- [x] `ROBOTIC_BACKEND_TOKEN = os.environ.get('ROBOTIC_BACKEND_TOKEN', '')` (DRF token of a
+- [x] `PORTAL_URL = os.environ.get('PORTAL_URL', '')`
+- [x] `PORTAL_TOKEN = os.environ.get('PORTAL_TOKEN', '')` (DRF token of a
       backend superuser/service account)
 - [x] `PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in
       ('1', 'true', 'yes')`
-- [x] `ROBOTIC_BACKEND_TIMEOUT = float(os.environ.get('ROBOTIC_BACKEND_TIMEOUT', '5'))`
+- [x] `PORTAL_TIMEOUT = float(os.environ.get('PORTAL_TIMEOUT', '5'))`
 - [x] README env table + `.env.example` rows; note that unset/empty disables access control.
 
 ### 8. Frontend — `pyobs_archive/frontend` (optional)
@@ -196,7 +196,7 @@ Following the repo's existing convention (`pyobs_archive/api/tests.py`: one flat
 - `AccessiblePermissionsTests` (`api/permissions.py`): superuser/staff → all; member → member +
   public projects; non-member → excluded; anonymous → existing 401; `PROJECT = None` frames →
   superuser-only.
-- `FrameAccessEndpointTests` (client + mocked `BackendClient`): `frames_view` / `aggregate_view`
+- `FrameAccessEndpointTests` (client + mocked `PortalClient`): `frames_view` / `aggregate_view`
   / `zip_view_get` return only accessible rows; `zip_view_post` silently skips unauthorized ids
   (asserted by absence from the returned zip's manifest, not an error); `frame_view` /
   `download_view` / `headers_view` / `preview_view` / `catalog_view` → 404 for inaccessible
@@ -215,7 +215,7 @@ additive) before the next:
 1. **pyobs-core**: release `Mastermind.get_fits_header_before()` writing `PROJECT` (companion
    plan, §1 upstream item). Not a hard blocker for the rest — ingest's `REQNUM` fallback (D4)
    covers frames until this lands and gets adopted by observing sites.
-2. **pyobs-robotic-backend**: `Project`/`users`/`public` API is already live (see "What exists
+2. **pyobs-portal**: `Project`/`users`/`public` API is already live (see "What exists
    today") — no action needed here before starting.
 3. **pyobs-archive**, `PROJECT_ACCESS_CONTROL` still unset/`False` (no behavior change for
    existing installs):
@@ -242,7 +242,7 @@ additive) before the next:
   until the backfill associates them.
 - **Trade-off:** 404 (not 403) hides existence of private frames from non-members — including
   counts/aggregates.
-- **Interplay with the backend proxy (pyobs-robotic-backend#82):** the backend's service token
+- **Interplay with the backend proxy (pyobs-portal#82):** the backend's service token
   bypasses archive filtering when it proxies data to the archive — the backend's own access
   scoping stays the gate there; revisit (forward user identity / direct SSO links) when this
   plan lands.
