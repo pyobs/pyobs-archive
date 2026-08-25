@@ -10,10 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+import logging
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from rest_framework.authentication import TokenAuthentication
+
+_settings_log = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -84,6 +87,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'pyobs_archive.urls'
+
+# Distinct from other pyobs Django apps (e.g. portal, web-admin) so browser
+# cookies don't collide when run on localhost at once - cookies are scoped by host, not port.
+SESSION_COOKIE_NAME = 'archive_sessionid'
+CSRF_COOKIE_NAME = 'archive_csrftoken'
 
 TEMPLATES = [
     {
@@ -237,6 +245,28 @@ FILENAME_FORMATTER = os.environ.get('FILENAME_FORMATTER') or None
 
 # max upload size in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 50*1024*1024
+
+# pyobs-portal connection, used to mirror projects/users (`manage.py sync_projects`)
+# and to resolve REQNUM -> project at ingest time - see
+# specs/plans/2026-08-20-archive-project-access-control.md. Leaving PROJECT_ACCESS_CONTROL unset
+# (or falsy) keeps today's behavior (no per-project access filtering); it's independent of
+# whether the portal connection itself is configured.
+# PORTAL_URL/PORTAL_TOKEN/PORTAL_TIMEOUT renamed from ROBOTIC_BACKEND_URL/_TOKEN/_TIMEOUT
+# (pyobs-robotic-backend -> pyobs-portal rename); the old names are still read as a fallback
+# for one release so existing deployments don't silently break.
+PORTAL_URL = os.environ.get('PORTAL_URL') or os.environ.get('ROBOTIC_BACKEND_URL', '')
+PORTAL_TOKEN = os.environ.get('PORTAL_TOKEN') or os.environ.get('ROBOTIC_BACKEND_TOKEN', '')
+_PORTAL_TIMEOUT_DEFAULT = 5.0
+_portal_timeout_raw = os.environ.get('PORTAL_TIMEOUT') or os.environ.get('ROBOTIC_BACKEND_TIMEOUT', _PORTAL_TIMEOUT_DEFAULT)
+try:
+    PORTAL_TIMEOUT = float(_portal_timeout_raw)
+except ValueError:
+    _settings_log.warning(
+        "Invalid PORTAL_TIMEOUT=%r, falling back to %s seconds.",
+        _portal_timeout_raw, _PORTAL_TIMEOUT_DEFAULT
+    )
+    PORTAL_TIMEOUT = _PORTAL_TIMEOUT_DEFAULT
+PROJECT_ACCESS_CONTROL = os.environ.get('PROJECT_ACCESS_CONTROL', 'false').lower() in ('1', 'true', 'yes')
 
 # try to import a local_settings.py
 try:

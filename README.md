@@ -1,80 +1,30 @@
 # pyobs-archive
 
 A webservice for an archive for astronomical images. Implements most of the interfaces
-defined by [Las Cumbres Observatory](https://developers.lco.global/#archive).
+defined by [Las Cumbres Observatory](https://developers.lco.global/#archive), and optionally
+restricts frame access to project members via a [pyobs-portal](https://github.com/pyobs/pyobs-portal)
+connection.
 
-## Configuration
+## Documentation
 
-All settings are controlled by environment variables. Copy `pyobs_archive/local_settings.example.py` to
-`pyobs_archive/local_settings.py` for local overrides, or set the following in your environment / `.env` file:
+Full installation (Docker Compose), configuration (every environment variable), architecture
+(how this fits into the rest of the pyobs fleet), and REST API reference: see
+[`docs/source/`](docs/source/) (built with Sphinx — `cd docs && uv run --with sphinx --with sphinx-rtd-theme make html`).
 
-| Variable | Default | Description |
-|---|---|---|
-| `SECRET_KEY` | dev-only fallback | Django secret key — **change in production** |
-| `DEBUG` | `false` | Set to `true` for development |
-| `ALLOWED_HOSTS` | (empty) | Comma-separated list of allowed hosts |
-| `CSRF_TRUSTED_ORIGINS` | (empty) | Comma-separated list of trusted origins |
-| `CORS_ALLOWED_ORIGINS` | (empty) | Comma-separated list of origins allowed to make cross-origin requests to the API |
-| `SQL_ENGINE` | `django.db.backends.sqlite3` | Database backend |
-| `SQL_DATABASE` | `db.sqlite3` | Database name / path |
-| `SQL_USER` | `user` | Database user |
-| `SQL_PASSWORD` | `password` | Database password |
-| `SQL_HOST` | `localhost` | Database host |
-| `SQL_PORT` | `5432` | Database port |
-| `STATIC_ROOT` | `/static/` | Directory for collected static files |
-| `ARCHIVE_ROOT` | `/data/` | Directory FITS files are stored in and served from |
-| `PATH_FORMATTER` | `{SITEID}/{DAY-OBS}/` | Format string for the sub-path files are stored under, within `ARCHIVE_ROOT` |
-| `FILENAME_FORMATTER` | (empty, use the header `FNAME`) | Format string for the archived filename |
-| `DJANGO_LOG_LEVEL` | `INFO` | Log level for Django's logger |
-| `KEYCLOAK_SERVER_URL` | (empty) | Keycloak login (optional addon on top of local Django username/password; unset disables it) |
-| `KEYCLOAK_REALM` | `pyobs` | Keycloak realm |
-| `KEYCLOAK_CLIENT_ID` / `KEYCLOAK_CLIENT_SECRET` | `archive` / (empty) | This service's Keycloak client credentials |
-| `KEYCLOAK_REDIRECT_URI` | (empty) | Must match the redirect URI registered for this client in Keycloak |
-| `KEYCLOAK_IDP_HINT` / `KEYCLOAK_IDP_LABEL` | (empty) | Optional one-click IdP login: hint passed to Keycloak as `kc_idp_hint` (skips its login/IdP-selection page) and the label for the login page's IdP button, e.g. `gwdg` / `GWDG` |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | (empty) | Settings-configured superuser, synced after every `migrate` (see [Running](#running)); leave unset to skip and use `createsuperuser` instead |
-
-## Running
-
-### Development
+## Development
 
 ```bash
+git clone https://github.com/pyobs/pyobs-archive.git
+cd pyobs-archive
 uv run manage.py migrate
 uv run manage.py createsuperuser
 uv run manage.py runserver
+uv run manage.py test
 ```
 
-With no configuration at all, this runs against a local SQLite database. Open `http://localhost:8000/` and
-log in with the superuser you created.
-
-Setting `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (generate the hash with
-`uv run python -c "from django.contrib.auth.hashers import make_password; print(make_password('yourpassword'))"`)
-syncs a matching superuser automatically after every `migrate`, skipping the interactive
-`createsuperuser` step — handy for scripted/Docker deployments. Leave both unset to opt out and
-create superusers the normal way instead.
-
-Create another user for ingesting new images (in this case, we call it "pyobs") and create the token
-that must be used when sending new images:
-
-    uv run manage.py createsuperuser
-    uv run manage.py drf_create_token pyobs
-
-### Docker Compose
-
-A production-ready setup with PostgreSQL is provided in [`docker-compose.yaml`](docker-compose.yaml). Static
-files are served directly by gunicorn via [Whitenoise](https://whitenoise.readthedocs.io/), so no separate
-web server container is needed — put this behind your own reverse proxy for TLS termination. The application
-image is pulled from `ghcr.io/pyobs/pyobs/pyobs-archive:latest`. Copy [`.env.example`](.env.example) to `.env`
-and adjust the values — in particular, bind-mount your real FITS storage over the `archive_data` volume.
-
-The app is served on port **8098**.
-
-```bash
-docker compose up -d
-docker compose exec web uv run manage.py createsuperuser        # yourself
-docker compose exec web uv run manage.py createsuperuser        # e.g. "pyobs", for ingest
-docker compose exec web uv run manage.py drf_create_token pyobs
-```
-
+See [`docs/source/development.rst`](docs/source/development.rst) for the full local-dev flow, and
+[`docs/source/installation.rst`](docs/source/installation.rst) for the Docker Compose production
+setup.
 
 ## Changelog
 
