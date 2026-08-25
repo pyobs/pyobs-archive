@@ -13,7 +13,7 @@ from django.conf import settings
 from django.utils.timezone import make_aware
 
 from pyobs_archive.api.utils import FilenameFormatter
-from pyobs_archive.api.backend import BackendClient, BackendUnavailable
+from pyobs_archive.api.portal import PortalClient, PortalUnavailable
 
 log = logging.getLogger(__name__)
 
@@ -34,10 +34,10 @@ def _reset_task_map_cache():
 
 
 def _get_task_map():
-    """Fetch (and cache) REQNUM (task id) -> project code from the robotic backend.
+    """Fetch (and cache) REQNUM (task id) -> project code from the portal.
 
     Raises:
-        BackendUnavailable: if the backend can't be reached. Failures aren't cached, so the
+        PortalUnavailable: if the portal can't be reached. Failures aren't cached, so the
             next call retries.
     """
     global _task_map_cache, _task_map_cache_expires
@@ -46,9 +46,9 @@ def _get_task_map():
     if _task_map_cache is not None and now < _task_map_cache_expires:
         return _task_map_cache
 
-    client = BackendClient(
-        settings.ROBOTIC_BACKEND_URL, settings.ROBOTIC_BACKEND_TOKEN,
-        timeout=settings.ROBOTIC_BACKEND_TIMEOUT
+    client = PortalClient(
+        settings.PORTAL_URL, settings.PORTAL_TOKEN,
+        timeout=settings.PORTAL_TIMEOUT
     )
     tasks = client.get_tasks()
 
@@ -59,7 +59,7 @@ def _get_task_map():
 
 
 class Project(models.Model):
-    """Local mirror of a pyobs-robotic-backend Project, kept up to date by the
+    """Local mirror of a pyobs-portal Project, kept up to date by the
     `sync_projects` management command (see specs/plans/2026-08-20-archive-project-access-control.md,
     §3). Used to decide which users may access frames of which project.
     """
@@ -218,27 +218,27 @@ class Frame(models.Model):
         return info
 
     def resolve_project_from_reqnum(self):
-        """Resolve PROJECT via REQNUM -> Task.id -> project, using the robotic backend's task
+        """Resolve PROJECT via REQNUM -> Task.id -> project, using the portal's task
         list, as a fallback for as long as the PROJECT FITS keyword isn't written upstream yet
         (see specs/plans/2026-08-20-archive-project-access-control.md, D4). No-op if PROJECT is
-        already set, REQNUM is missing, or the backend isn't configured/reachable - in the
+        already set, REQNUM is missing, or the portal isn't configured/reachable - in the
         latter case the frame simply stays unassociated (private, D5) and a warning is logged.
         """
         if self.PROJECT is not None or not self.REQNUM:
             return
 
-        if not settings.ROBOTIC_BACKEND_URL or not settings.ROBOTIC_BACKEND_TOKEN:
-            # Expected/common state for any install that hasn't configured the backend
+        if not settings.PORTAL_URL or not settings.PORTAL_TOKEN:
+            # Expected/common state for any install that hasn't configured the portal
             # connection (or the whole feature) yet - not worth a warning-level log per frame.
             log.info(
-                'Cannot resolve PROJECT for REQNUM=%s: ROBOTIC_BACKEND_URL/ROBOTIC_BACKEND_TOKEN '
+                'Cannot resolve PROJECT for REQNUM=%s: PORTAL_URL/PORTAL_TOKEN '
                 'not configured.', self.REQNUM
             )
             return
 
         try:
             task_map = _get_task_map()
-        except BackendUnavailable as e:
+        except PortalUnavailable as e:
             log.warning('Could not resolve PROJECT for REQNUM=%s: %s', self.REQNUM, e)
             return
 

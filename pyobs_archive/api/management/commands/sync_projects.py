@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from pyobs_archive.api.backend import BackendClient, BackendUnavailable
+from pyobs_archive.api.portal import PortalClient, PortalUnavailable
 from pyobs_archive.api.models import Project
 
 log = logging.getLogger(__name__)
@@ -13,34 +13,34 @@ log = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = (
-        'Mirror projects and their members/public flag from the pyobs-robotic-backend '
-        '(ROBOTIC_BACKEND_URL/ROBOTIC_BACKEND_TOKEN). Run periodically (cron/systemd timer, '
-        'e.g. every 5-10 min) and whenever projects change on the backend - see '
+        'Mirror projects and their members/public flag from the pyobs-portal '
+        '(PORTAL_URL/PORTAL_TOKEN). Run periodically (cron/systemd timer, '
+        'e.g. every 5-10 min) and whenever projects change on the portal - see '
         'specs/plans/2026-08-20-archive-project-access-control.md, section 3.'
     )
 
     def handle(self, *args, **options):
-        if not settings.ROBOTIC_BACKEND_URL or not settings.ROBOTIC_BACKEND_TOKEN:
+        if not settings.PORTAL_URL or not settings.PORTAL_TOKEN:
             raise CommandError(
-                'ROBOTIC_BACKEND_URL and ROBOTIC_BACKEND_TOKEN must be configured to sync projects.'
+                'PORTAL_URL and PORTAL_TOKEN must be configured to sync projects.'
             )
 
-        client = BackendClient(
-            settings.ROBOTIC_BACKEND_URL, settings.ROBOTIC_BACKEND_TOKEN,
-            timeout=settings.ROBOTIC_BACKEND_TIMEOUT
+        client = PortalClient(
+            settings.PORTAL_URL, settings.PORTAL_TOKEN,
+            timeout=settings.PORTAL_TIMEOUT
         )
         try:
             projects = client.get_projects()
-        except BackendUnavailable as e:
+        except PortalUnavailable as e:
             raise CommandError('Could not sync projects: %s' % e) from e
 
-        # An empty response almost certainly means something's wrong on the backend side (e.g.
+        # An empty response almost certainly means something's wrong on the portal side (e.g.
         # a misconfigured service account, or a transient empty page) rather than "all projects
         # were deleted" - treat it as a failure rather than wiping the local mirror. A stale
         # mirror is safer than an empty one, since PROJECT=None frames are superuser-only (D5).
         if not projects and Project.objects.exists():
             raise CommandError(
-                'Backend returned zero projects while the local mirror is non-empty - refusing '
+                'Portal returned zero projects while the local mirror is non-empty - refusing '
                 'to wipe it. Aborting without making any changes.'
             )
 
@@ -84,7 +84,7 @@ class Command(BaseCommand):
 
                 project.users.set(users)
 
-            # delete projects that no longer exist on the backend
+            # delete projects that no longer exist on the portal
             deleted, _ = Project.objects.exclude(code__in=seen_codes).delete()
 
         log.info(
@@ -99,7 +99,7 @@ class Command(BaseCommand):
         )
         if unknown_usernames:
             log.warning(
-                'Backend reported %d project member(s) with no matching local user: %s',
+                'Portal reported %d project member(s) with no matching local user: %s',
                 len(unknown_usernames), ', '.join(sorted(unknown_usernames))
             )
             self.stdout.write(
