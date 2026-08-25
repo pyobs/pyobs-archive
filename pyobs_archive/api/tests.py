@@ -1,3 +1,4 @@
+import importlib
 import io
 import os
 import tempfile
@@ -12,8 +13,9 @@ from django.core.management.base import CommandError
 from django.test import TestCase, RequestFactory
 from rest_framework.exceptions import ParseError
 
+import pyobs_archive.settings as archive_settings_module
 from pyobs_archive.api import models as models_module
-from pyobs_archive.api.backend import BackendClient, BackendUnavailable
+from pyobs_archive.api.portal import PortalClient, PortalUnavailable
 from pyobs_archive.api.models import Frame, Project
 from pyobs_archive.api.permissions import (
     accessible_projects, can_access_frame, filter_accessible_frames, frame_access_q,
@@ -525,11 +527,11 @@ class FrameAccessEndpointTests(TestCase):
 
 
 class FrameProjectIngestTests(TestCase):
-    """PROJECT association: FITS header, REQNUM->project fallback via the robotic backend."""
+    """PROJECT association: FITS header, REQNUM->project fallback via the portal."""
 
     def setUp(self):
         # resolve_project_from_reqnum() caches the task map in-process (module-level, TTL-based)
-        # so tests that expect a fresh BackendClient.get_tasks() call don't see a previous
+        # so tests that expect a fresh PortalClient.get_tasks() call don't see a previous
         # test's cached result.
         models_module._reset_task_map_cache()
         self.addCleanup(models_module._reset_task_map_cache)
@@ -544,26 +546,26 @@ class FrameProjectIngestTests(TestCase):
         frame.add_fits_header(_header())
         self.assertIsNone(frame.PROJECT)
 
-    @mock.patch('pyobs_archive.api.models.BackendClient')
+    @mock.patch('pyobs_archive.api.models.PortalClient')
     def test_reqnum_fallback_resolves_project(self, mock_client_cls):
         mock_client_cls.return_value.get_tasks.return_value = [{'id': 12345, 'project': 'XYZ001'}]
 
         frame = Frame()
         frame.add_fits_header(_header(REQNUM='12345'))
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame.resolve_project_from_reqnum()
 
         self.assertEqual(frame.PROJECT, 'XYZ001')
         mock_client_cls.assert_called_once_with(
-            'https://backend.example.org', 'tok', timeout=mock.ANY
+            'https://portal.example.org', 'tok', timeout=mock.ANY
         )
 
     def test_reqnum_fallback_is_noop_when_project_already_set(self):
         frame = Frame()
         frame.add_fits_header(_header(PROJECT='ABC001', REQNUM='999'))
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame.resolve_project_from_reqnum()
         self.assertEqual(frame.PROJECT, 'ABC001')
 
@@ -573,41 +575,41 @@ class FrameProjectIngestTests(TestCase):
 
         frame = Frame()
         frame.add_fits_header(header)
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame.resolve_project_from_reqnum()
         self.assertIsNone(frame.PROJECT)
 
-    def test_backend_not_configured_leaves_project_none(self):
+    def test_portal_not_configured_leaves_project_none(self):
         frame = Frame()
         frame.add_fits_header(_header(REQNUM='12345'))
-        with self.settings(ROBOTIC_BACKEND_URL='', ROBOTIC_BACKEND_TOKEN=''):
+        with self.settings(PORTAL_URL='', PORTAL_TOKEN=''):
             frame.resolve_project_from_reqnum()  # should not raise
         self.assertIsNone(frame.PROJECT)
 
-    @mock.patch('pyobs_archive.api.models.BackendClient')
-    def test_backend_unavailable_leaves_project_none(self, mock_client_cls):
-        mock_client_cls.return_value.get_tasks.side_effect = BackendUnavailable('boom')
+    @mock.patch('pyobs_archive.api.models.PortalClient')
+    def test_portal_unavailable_leaves_project_none(self, mock_client_cls):
+        mock_client_cls.return_value.get_tasks.side_effect = PortalUnavailable('boom')
 
         frame = Frame()
         frame.add_fits_header(_header(REQNUM='12345'))
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame.resolve_project_from_reqnum()  # should not raise
         self.assertIsNone(frame.PROJECT)
 
-    @mock.patch('pyobs_archive.api.models.BackendClient')
+    @mock.patch('pyobs_archive.api.models.PortalClient')
     def test_reqnum_not_in_task_map_leaves_project_none(self, mock_client_cls):
         mock_client_cls.return_value.get_tasks.return_value = [{'id': 1, 'project': 'OTHER'}]
 
         frame = Frame()
         frame.add_fits_header(_header(REQNUM='12345'))
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame.resolve_project_from_reqnum()
         self.assertIsNone(frame.PROJECT)
 
-    @mock.patch('pyobs_archive.api.models.BackendClient')
+    @mock.patch('pyobs_archive.api.models.PortalClient')
     def test_task_map_is_cached_across_frames(self, mock_client_cls):
         mock_client_cls.return_value.get_tasks.return_value = [
             {'id': 1, 'project': 'A'}, {'id': 2, 'project': 'B'},
@@ -618,8 +620,8 @@ class FrameProjectIngestTests(TestCase):
         frame2 = Frame()
         frame2.add_fits_header(_header(REQNUM='2'))
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             frame1.resolve_project_from_reqnum()
             frame2.resolve_project_from_reqnum()
 
@@ -640,47 +642,47 @@ def _mock_response(json_data, status_code=200):
     return response
 
 
-class BackendClientPaginationTests(TestCase):
-    """BackendClient._get_all_pages: DRF-style {results, next} pages, bare-list responses, and
+class PortalClientPaginationTests(TestCase):
+    """PortalClient._get_all_pages: DRF-style {results, next} pages, bare-list responses, and
     the max-pages abort."""
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_follows_dict_pages_via_next(self, mock_get):
         page1 = _mock_response({
-            'next': 'https://backend.example.org/api/projects/?page=2',
+            'next': 'https://portal.example.org/api/projects/?page=2',
             'results': [{'code': 'A'}],
         })
         page2 = _mock_response({'next': None, 'results': [{'code': 'B'}]})
         mock_get.side_effect = [page1, page2]
 
-        client = BackendClient('https://backend.example.org', 'tok')
+        client = PortalClient('https://portal.example.org', 'tok')
         result = client.get_projects()
 
         self.assertEqual(result, [{'code': 'A'}, {'code': 'B'}])
         self.assertEqual(mock_get.call_count, 2)
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_follows_bare_list_response_without_crashing(self, mock_get):
-        # a non-paginated endpoint (or a backend that returns a bare list) must not hit the
+        # a non-paginated endpoint (or a portal that returns a bare list) must not hit the
         # dict-only `.get(...)` branch
         mock_get.return_value = _mock_response([{'code': 'A'}, {'code': 'B'}])
 
-        client = BackendClient('https://backend.example.org', 'tok')
+        client = PortalClient('https://portal.example.org', 'tok')
         result = client.get_projects()
 
         self.assertEqual(result, [{'code': 'A'}, {'code': 'B'}])
         mock_get.assert_called_once()
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_aborts_after_max_pages(self, mock_get):
         mock_get.return_value = _mock_response({
-            'next': 'https://backend.example.org/api/projects/?page=next', 'results': [],
+            'next': 'https://portal.example.org/api/projects/?page=next', 'results': [],
         })
 
-        client = BackendClient('https://backend.example.org', 'tok')
+        client = PortalClient('https://portal.example.org', 'tok')
         client.MAX_PAGES = 3
 
-        with self.assertRaises(BackendUnavailable):
+        with self.assertRaises(PortalUnavailable):
             client.get_projects()
         self.assertEqual(mock_get.call_count, 3)
 
@@ -692,10 +694,10 @@ class SyncProjectsCommandTests(TestCase):
         self.alice = User.objects.create_user('alice')
         self.bob = User.objects.create_user('bob')
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_creates_projects_and_reconciles_members_across_pages(self, mock_get):
         page1 = _mock_response({
-            'next': 'https://backend.example.org/api/projects/?page=2',
+            'next': 'https://portal.example.org/api/projects/?page=2',
             'results': [{'code': 'A', 'name': 'Project A', 'public': True, 'users': ['alice']}],
         })
         page2 = _mock_response({
@@ -706,8 +708,8 @@ class SyncProjectsCommandTests(TestCase):
         })
         mock_get.side_effect = [page1, page2]
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             call_command('sync_projects')
 
         self.assertEqual(mock_get.call_count, 2)
@@ -724,7 +726,7 @@ class SyncProjectsCommandTests(TestCase):
             set(project_b.users.values_list('username', flat=True)), {'alice', 'bob'}
         )
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_updates_existing_project_and_drops_stale_member(self, mock_get):
         project = Project.objects.create(code='A', name='Old name', public=False)
         project.users.set([self.alice, self.bob])
@@ -734,8 +736,8 @@ class SyncProjectsCommandTests(TestCase):
             'results': [{'code': 'A', 'name': 'New name', 'public': True, 'users': ['alice']}],
         })
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             call_command('sync_projects')
 
         project.refresh_from_db()
@@ -743,7 +745,7 @@ class SyncProjectsCommandTests(TestCase):
         self.assertTrue(project.public)
         self.assertEqual(list(project.users.values_list('username', flat=True)), ['alice'])
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_deletes_projects_missing_from_a_non_empty_response(self, mock_get):
         Project.objects.create(code='STALE', name='Stale', public=False)
         Project.objects.create(code='KEEP', name='Keep', public=False)
@@ -752,16 +754,16 @@ class SyncProjectsCommandTests(TestCase):
             'results': [{'code': 'KEEP', 'name': 'Keep', 'public': False, 'users': []}],
         })
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             call_command('sync_projects')
 
         self.assertFalse(Project.objects.filter(code='STALE').exists())
         self.assertTrue(Project.objects.filter(code='KEEP').exists())
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_empty_response_does_not_wipe_existing_mirror(self, mock_get):
-        # An empty projects list from the backend is far more likely to indicate a problem
+        # An empty projects list from the portal is far more likely to indicate a problem
         # (misconfigured service account, transient bad response) than "every project was
         # deleted" - refuse to wipe a non-empty local mirror in that case (a stale mirror is
         # safer than an empty one, since PROJECT=None frames are superuser-only, D5).
@@ -769,46 +771,90 @@ class SyncProjectsCommandTests(TestCase):
         project.users.set([self.alice])
         mock_get.return_value = _mock_response({'next': None, 'results': []})
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             with self.assertRaises(CommandError):
                 call_command('sync_projects')
 
         project.refresh_from_db()
         self.assertEqual(list(project.users.values_list('username', flat=True)), ['alice'])
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
+    @mock.patch('pyobs_archive.api.portal.requests.get')
     def test_empty_response_is_fine_when_mirror_already_empty(self, mock_get):
         mock_get.return_value = _mock_response({'next': None, 'results': []})
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             call_command('sync_projects')  # should not raise
 
         self.assertEqual(Project.objects.count(), 0)
 
-    def test_aborts_when_backend_not_configured(self):
-        with self.settings(ROBOTIC_BACKEND_URL='', ROBOTIC_BACKEND_TOKEN=''):
+    def test_aborts_when_portal_not_configured(self):
+        with self.settings(PORTAL_URL='', PORTAL_TOKEN=''):
             with self.assertRaises(CommandError):
                 call_command('sync_projects')
         self.assertEqual(Project.objects.count(), 0)
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
-    def test_aborts_with_nonzero_exit_when_backend_unreachable(self, mock_get):
+    @mock.patch('pyobs_archive.api.portal.requests.get')
+    def test_aborts_with_nonzero_exit_when_portal_unreachable(self, mock_get):
         mock_get.side_effect = requests.ConnectionError('boom')
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             with self.assertRaises(CommandError):
                 call_command('sync_projects')
         self.assertEqual(Project.objects.count(), 0)
 
-    @mock.patch('pyobs_archive.api.backend.requests.get')
-    def test_aborts_when_backend_returns_server_error(self, mock_get):
+    @mock.patch('pyobs_archive.api.portal.requests.get')
+    def test_aborts_when_portal_returns_server_error(self, mock_get):
         mock_get.return_value = _mock_response({}, status_code=502)
 
-        with self.settings(ROBOTIC_BACKEND_URL='https://backend.example.org',
-                            ROBOTIC_BACKEND_TOKEN='tok'):
+        with self.settings(PORTAL_URL='https://portal.example.org',
+                            PORTAL_TOKEN='tok'):
             with self.assertRaises(CommandError):
                 call_command('sync_projects')
         self.assertEqual(Project.objects.count(), 0)
+
+
+class PortalSettingsEnvFallbackTests(TestCase):
+    """PORTAL_URL/PORTAL_TOKEN/PORTAL_TIMEOUT read as module-level `os.environ.get()` calls in
+    settings.py, so `override_settings` can't exercise their env-var fallback logic (it patches
+    attributes on the already-loaded settings object, after that logic already ran). Reload the
+    module under a patched environment instead, and reload it again afterward so later tests see
+    the real environment again."""
+
+    def test_falls_back_to_legacy_env_vars_when_new_ones_are_unset(self):
+        overrides = {
+            'ROBOTIC_BACKEND_URL': 'https://legacy.example.org',
+            'ROBOTIC_BACKEND_TOKEN': 'legacytok',
+            'ROBOTIC_BACKEND_TIMEOUT': '7',
+        }
+        try:
+            with mock.patch.dict(os.environ, overrides, clear=False):
+                os.environ.pop('PORTAL_URL', None)
+                os.environ.pop('PORTAL_TOKEN', None)
+                os.environ.pop('PORTAL_TIMEOUT', None)
+                reloaded = importlib.reload(archive_settings_module)
+                self.assertEqual(reloaded.PORTAL_URL, 'https://legacy.example.org')
+                self.assertEqual(reloaded.PORTAL_TOKEN, 'legacytok')
+                self.assertEqual(reloaded.PORTAL_TIMEOUT, 7.0)
+        finally:
+            importlib.reload(archive_settings_module)
+
+    def test_new_env_vars_take_precedence_over_legacy_ones(self):
+        overrides = {
+            'PORTAL_URL': 'https://new.example.org',
+            'PORTAL_TOKEN': 'newtok',
+            'PORTAL_TIMEOUT': '3',
+            'ROBOTIC_BACKEND_URL': 'https://legacy.example.org',
+            'ROBOTIC_BACKEND_TOKEN': 'legacytok',
+            'ROBOTIC_BACKEND_TIMEOUT': '7',
+        }
+        try:
+            with mock.patch.dict(os.environ, overrides, clear=False):
+                reloaded = importlib.reload(archive_settings_module)
+                self.assertEqual(reloaded.PORTAL_URL, 'https://new.example.org')
+                self.assertEqual(reloaded.PORTAL_TOKEN, 'newtok')
+                self.assertEqual(reloaded.PORTAL_TIMEOUT, 3.0)
+        finally:
+            importlib.reload(archive_settings_module)
