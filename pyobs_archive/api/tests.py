@@ -1,3 +1,4 @@
+import importlib
 import io
 import os
 import tempfile
@@ -12,6 +13,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase, RequestFactory
 from rest_framework.exceptions import ParseError
 
+import pyobs_archive.settings as archive_settings_module
 from pyobs_archive.api import models as models_module
 from pyobs_archive.api.portal import PortalClient, PortalUnavailable
 from pyobs_archive.api.models import Frame, Project
@@ -812,3 +814,47 @@ class SyncProjectsCommandTests(TestCase):
             with self.assertRaises(CommandError):
                 call_command('sync_projects')
         self.assertEqual(Project.objects.count(), 0)
+
+
+class PortalSettingsEnvFallbackTests(TestCase):
+    """PORTAL_URL/PORTAL_TOKEN/PORTAL_TIMEOUT read as module-level `os.environ.get()` calls in
+    settings.py, so `override_settings` can't exercise their env-var fallback logic (it patches
+    attributes on the already-loaded settings object, after that logic already ran). Reload the
+    module under a patched environment instead, and reload it again afterward so later tests see
+    the real environment again."""
+
+    def test_falls_back_to_legacy_env_vars_when_new_ones_are_unset(self):
+        overrides = {
+            'ROBOTIC_BACKEND_URL': 'https://legacy.example.org',
+            'ROBOTIC_BACKEND_TOKEN': 'legacytok',
+            'ROBOTIC_BACKEND_TIMEOUT': '7',
+        }
+        try:
+            with mock.patch.dict(os.environ, overrides, clear=False):
+                os.environ.pop('PORTAL_URL', None)
+                os.environ.pop('PORTAL_TOKEN', None)
+                os.environ.pop('PORTAL_TIMEOUT', None)
+                reloaded = importlib.reload(archive_settings_module)
+                self.assertEqual(reloaded.PORTAL_URL, 'https://legacy.example.org')
+                self.assertEqual(reloaded.PORTAL_TOKEN, 'legacytok')
+                self.assertEqual(reloaded.PORTAL_TIMEOUT, 7.0)
+        finally:
+            importlib.reload(archive_settings_module)
+
+    def test_new_env_vars_take_precedence_over_legacy_ones(self):
+        overrides = {
+            'PORTAL_URL': 'https://new.example.org',
+            'PORTAL_TOKEN': 'newtok',
+            'PORTAL_TIMEOUT': '3',
+            'ROBOTIC_BACKEND_URL': 'https://legacy.example.org',
+            'ROBOTIC_BACKEND_TOKEN': 'legacytok',
+            'ROBOTIC_BACKEND_TIMEOUT': '7',
+        }
+        try:
+            with mock.patch.dict(os.environ, overrides, clear=False):
+                reloaded = importlib.reload(archive_settings_module)
+                self.assertEqual(reloaded.PORTAL_URL, 'https://new.example.org')
+                self.assertEqual(reloaded.PORTAL_TOKEN, 'newtok')
+                self.assertEqual(reloaded.PORTAL_TIMEOUT, 3.0)
+        finally:
+            importlib.reload(archive_settings_module)
