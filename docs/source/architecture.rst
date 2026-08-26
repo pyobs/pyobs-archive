@@ -13,9 +13,7 @@ ecosystem over HTTP:
   into this service's local database, so per-request access checks (``PROJECT_ACCESS_CONTROL``)
   stay fast without a live call per request. The portal connection is also used to resolve a
   frame's ``REQNUM`` to a project at ingest time. See :doc:`configuration` for the connection
-  settings and `specs/plans/2026-08-20-archive-project-access-control.md
-  <https://github.com/pyobs/pyobs-archive/blob/develop/specs/plans/2026-08-20-archive-project-access-control.md>`_
-  in this repo for the full design.
+  settings.
 - **Keycloak** (optional) — when ``KEYCLOAK_SERVER_URL`` is set, users can log in via Keycloak SSO
   (``/accounts/keycloak/``) alongside local Django username/password, and the REST API accepts a
   Keycloak Bearer token as an alternative to a DRF token (see :doc:`api`).
