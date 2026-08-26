@@ -5,6 +5,8 @@ defined by [Las Cumbres Observatory](https://developers.lco.global/#archive), an
 restricts frame access to project members via a [pyobs-portal](https://github.com/pyobs/pyobs-portal)
 connection.
 
+![Frame browser showing a filter sidebar and a sortable table of BIAS, DARK, SKYFLAT, and EXPOSE frames](docs/source/_static/screenshots/frame-list.jpg)
+
 ## Documentation
 
 Full installation (Docker Compose), configuration (every environment variable), architecture
