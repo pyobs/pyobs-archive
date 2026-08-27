@@ -11,8 +11,17 @@ def ingest_image(filename: str, url: str, token: str):
     session = requests.session()
     headers = {'Authorization': 'Token ' + token}
 
-    # do some initial GET request for getting the csrftoken
+    # do some initial GET request for getting the csrftoken; the cookie name depends on
+    # the server's CSRF_COOKIE_NAME setting (pyobs apps use project-specific names like
+    # archive_csrftoken, portal_csrftoken)
     session.get(url, headers=headers)
+    csrf_token = next(
+        (value for name, value in session.cookies.items() if name.endswith("csrftoken")),
+        None,
+    )
+    if csrf_token is None:
+        print('Could not find CSRF token cookie in response from archive.')
+        sys.exit(1)
 
     # open file
     img = open(filename, 'rb')
@@ -24,7 +33,7 @@ def ingest_image(filename: str, url: str, token: str):
     print("Ingesting file %s..." % filename)
     r = session.post(
         urljoin(url, 'frames/create/'),
-        data={'csrfmiddlewaretoken': session.cookies['csrftoken']},
+        data={'csrfmiddlewaretoken': csrf_token},
         files={os.path.basename(filename): img},
         headers=headers
     )
