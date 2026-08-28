@@ -17,6 +17,8 @@ Cross-repo:
   keyword).
 - `../../pyobs-core/specs/plans/2026-08-12-shared-auth-keycloak.md` — implemented, closed.
   `pyobs-auth` + Keycloak integration; archive cutover landed as `v2.0.0.dev8`.
+- `../../pyobs-core/specs/design/shared-authz-keycloak.md` — proposed: centralized authorization
+  via Keycloak groups/roles; replaces archive's per-service `is_active` activation (issue #823).
 - `../../pyobs-core/specs/design/obsnum_fits_header.md` — #738, the `REQNUM`/`OBSNUM` FITS
   keywords used for frame→project association.
 - `../../pyobs-portal/specs/plans/2026-08-20-connect-pyobs-archive.md` — portal-side
