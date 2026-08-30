@@ -223,6 +223,12 @@ PYOBS_AUTH = {
     'IDP_HINT': os.getenv('KEYCLOAK_IDP_HINT', ''),
     'IDP_LABEL': os.getenv('KEYCLOAK_IDP_LABEL', ''),
     'USER_RESOLVER': 'pyobs_archive.authentication.keycloak.resolve_user',
+    # Claims-based authorization gate (pyobs-auth >=2.1): membership in this Keycloak group is
+    # now what authorizes a user to use archive at all, replacing the old is_active activation
+    # gate - see pyobs-core's specs/design/shared-authz-keycloak.md. Empty/unset disables the
+    # gate entirely, so this must be set (and the group populated in Keycloak) before deploying,
+    # or every authenticated Keycloak user is authorized.
+    'REQUIRED_GROUPS': [g for g in [os.getenv('KEYCLOAK_REQUIRED_GROUP', '/pyobs-archive')] if g],
 }
 
 # Settings-configured admin account (optional): synced to a real superuser after every

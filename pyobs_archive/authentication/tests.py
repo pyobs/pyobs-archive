@@ -47,9 +47,17 @@ class ResolveUserTests(TestCase):
         user = resolve_user({"sub": "sub-4", "email": "no-username@example.org"})
         self.assertEqual(user.username, "sub-4")
 
-    def test_new_user_is_created_inactive(self):
+    def test_new_user_is_created_active(self):
+        # Authorization is now the PYOBS_AUTH['REQUIRED_GROUPS'] claims gate, not local
+        # activation - see pyobs-core's specs/design/shared-authz-keycloak.md.
         user = resolve_user({"sub": "sub-5", "email": "pending@example.org"})
-        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_active)
+
+    def test_new_user_is_not_granted_staff_or_superuser(self):
+        # No Keycloak-role sync exists for archive yet - is_staff/is_superuser stay local-only.
+        user = resolve_user({"sub": "sub-7", "email": "plain@example.org"})
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
 
     def test_links_an_existing_user_by_username_when_email_does_not_match(self):
         # e.g. an old observation-portal-era User created before an email address was required
