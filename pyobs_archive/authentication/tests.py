@@ -104,3 +104,35 @@ class AdminSyncTests(TestCase):
     def test_sync_does_nothing_when_unconfigured(self):
         sync_admin_user(sender=None)
         self.assertFalse(User.objects.filter(username=_TEST_ADMIN_USERNAME).exists())
+
+
+class ActivateKeycloakLinkedUsersMigrationTests(TestCase):
+    """Exercises migration 0007's data-migration function directly against real models. This repo
+    has no migration-testing framework (e.g. django-test-migrations) - the migration itself
+    already ran as a no-op against an empty DB when the test database was created, so this tests
+    the underlying queryset logic rather than a true forwards-migration run."""
+
+    def test_activates_only_inactive_keycloak_linked_users(self):
+        import importlib
+
+        from django.apps import apps as django_apps
+
+        migration_module = importlib.import_module(
+            "pyobs_archive.authentication.migrations.0007_activate_keycloak_linked_users"
+        )
+
+        keycloak_inactive = User.objects.create(username="kc-inactive", is_active=False)
+        Profile.objects.create(user=keycloak_inactive, keycloak_sub="sub-migrate-1")
+
+        local_only_inactive = User.objects.create(username="local-inactive", is_active=False)
+        Profile.objects.create(user=local_only_inactive, keycloak_sub=None)
+
+        keycloak_already_active = User.objects.create(username="kc-active", is_active=True)
+        Profile.objects.create(user=keycloak_already_active, keycloak_sub="sub-migrate-2")
+
+        migration_module.activate_keycloak_linked_users(django_apps, None)
+
+        keycloak_inactive.refresh_from_db()
+        local_only_inactive.refresh_from_db()
+        self.assertTrue(keycloak_inactive.is_active)
+        self.assertFalse(local_only_inactive.is_active)
