@@ -81,6 +81,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # after AuthenticationMiddleware (needs request.user) - re-checks a Keycloak-backed session's
+    # authorization once its access token expires, instead of only at next login. See pyobs-auth's
+    # docs/source/configuration.rst, "Authorization: claims vs. local is_active".
+    'pyobs_auth.middleware.KeycloakSessionRefreshMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'oauth2_provider.middleware.OAuth2TokenMiddleware'
@@ -223,6 +227,17 @@ PYOBS_AUTH = {
     'IDP_HINT': os.getenv('KEYCLOAK_IDP_HINT', ''),
     'IDP_LABEL': os.getenv('KEYCLOAK_IDP_LABEL', ''),
     'USER_RESOLVER': 'pyobs_archive.authentication.keycloak.resolve_user',
+    # Claims-based authorization gate (pyobs-auth >=2.1): membership in this Keycloak group is
+    # now what authorizes a user to use archive at all, replacing the old is_active activation
+    # gate - see pyobs-core's specs/design/shared-authz-keycloak.md. Empty/unset disables the
+    # gate entirely, so this must be set (and the group populated in Keycloak) before deploying,
+    # or every authenticated Keycloak user is authorized.
+    'REQUIRED_GROUPS': [g for g in [os.getenv('KEYCLOAK_REQUIRED_GROUP', '/pyobs-archive')] if g],
+    # Keycloak-independent kill switch, layered on top of REQUIRED_GROUPS above: an admin can
+    # deactivate a specific local User (Django admin) regardless of their Keycloak group
+    # membership. True preserves this service's pre-2.1 behavior, where is_active was always
+    # the gate.
+    'ENFORCE_LOCAL_ACTIVE': os.getenv('KEYCLOAK_ENFORCE_LOCAL_ACTIVE', 'True'),
 }
 
 # Settings-configured admin account (optional): synced to a real superuser after every
