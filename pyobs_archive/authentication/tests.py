@@ -47,9 +47,17 @@ class ResolveUserTests(TestCase):
         user = resolve_user({"sub": "sub-4", "email": "no-username@example.org"})
         self.assertEqual(user.username, "sub-4")
 
-    def test_new_user_is_created_inactive(self):
+    def test_new_user_is_created_active(self):
+        # Authorization is now the PYOBS_AUTH['REQUIRED_GROUPS'] claims gate, not local
+        # activation - see pyobs-core's specs/design/shared-authz-keycloak.md.
         user = resolve_user({"sub": "sub-5", "email": "pending@example.org"})
-        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_active)
+
+    def test_new_user_is_not_granted_staff_or_superuser(self):
+        # No Keycloak-role sync exists for archive yet - is_staff/is_superuser stay local-only.
+        user = resolve_user({"sub": "sub-7", "email": "plain@example.org"})
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
 
     def test_links_an_existing_user_by_username_when_email_does_not_match(self):
         # e.g. an old observation-portal-era User created before an email address was required
@@ -96,3 +104,35 @@ class AdminSyncTests(TestCase):
     def test_sync_does_nothing_when_unconfigured(self):
         sync_admin_user(sender=None)
         self.assertFalse(User.objects.filter(username=_TEST_ADMIN_USERNAME).exists())
+
+
+class ActivateKeycloakLinkedUsersMigrationTests(TestCase):
+    """Exercises migration 0007's data-migration function directly against real models. This repo
+    has no migration-testing framework (e.g. django-test-migrations) - the migration itself
+    already ran as a no-op against an empty DB when the test database was created, so this tests
+    the underlying queryset logic rather than a true forwards-migration run."""
+
+    def test_activates_only_inactive_keycloak_linked_users(self):
+        import importlib
+
+        from django.apps import apps as django_apps
+
+        migration_module = importlib.import_module(
+            "pyobs_archive.authentication.migrations.0007_activate_keycloak_linked_users"
+        )
+
+        keycloak_inactive = User.objects.create(username="kc-inactive", is_active=False)
+        Profile.objects.create(user=keycloak_inactive, keycloak_sub="sub-migrate-1")
+
+        local_only_inactive = User.objects.create(username="local-inactive", is_active=False)
+        Profile.objects.create(user=local_only_inactive, keycloak_sub=None)
+
+        keycloak_already_active = User.objects.create(username="kc-active", is_active=True)
+        Profile.objects.create(user=keycloak_already_active, keycloak_sub="sub-migrate-2")
+
+        migration_module.activate_keycloak_linked_users(django_apps, None)
+
+        keycloak_inactive.refresh_from_db()
+        local_only_inactive.refresh_from_db()
+        self.assertTrue(keycloak_inactive.is_active)
+        self.assertFalse(local_only_inactive.is_active)
