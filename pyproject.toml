@@ -17,7 +17,7 @@ dependencies = [
     "django-cors-headers>=4.4",
     "cryptography>=43.0",
     "whitenoise>=6.7",
-    "pyobs-auth>=2.0.0",
+    "pyobs-auth>=2.1.0",
     "requests>=2.31",
 ]
 
