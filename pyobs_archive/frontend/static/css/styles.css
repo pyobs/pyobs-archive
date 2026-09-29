@@ -13,8 +13,8 @@ html, body {
     --pyobs-surface-text-disabled: #adb5bd;
     --pyobs-surface-hover-bg: #e9ecef;
     --pyobs-loading-dot: #495057;
-    --pyobs-accent-bg: #0d6efd20;
-    --pyobs-accent-text: #0a58ca;
+    --pyobs-accent-bg: #6f42c120;
+    --pyobs-accent-text: #59359a;
 }
 [data-bs-theme="dark"] {
     --pyobs-surface-bg: #1a1d21;
@@ -24,8 +24,8 @@ html, body {
     --pyobs-surface-text-disabled: #495057;
     --pyobs-surface-hover-bg: #2d3035;
     --pyobs-loading-dot: #dee2e6;
-    --pyobs-accent-bg: #0d6efd20;
-    --pyobs-accent-text: #6ea8fe;
+    --pyobs-accent-bg: #6f42c120;
+    --pyobs-accent-text: #a98eda;
 }
 
 .datetext {
@@ -113,12 +113,12 @@ table {
     color: var(--pyobs-surface-text-disabled);
 }
 .daterangepicker td.in-range {
-    background-color: #0d6efd20;
+    background-color: #6f42c120;
     color: var(--pyobs-surface-text);
 }
 .daterangepicker td.active,
 .daterangepicker td.active:hover {
-    background-color: #0d6efd;
+    background-color: var(--bs-primary);
     color: #fff;
 }
 .daterangepicker td.disabled,
@@ -158,6 +158,6 @@ table {
     background-color: var(--pyobs-surface-hover-bg);
 }
 .daterangepicker .ranges li.active {
-    background-color: #0d6efd;
+    background-color: var(--bs-primary);
     color: #fff;
 }
