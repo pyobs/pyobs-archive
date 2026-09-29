@@ -1,0 +1,57 @@
+/* Page accent color, matches the brand icon. Overrides Bootstrap's primary. */
+:root {
+  --bs-primary: #6f42c1;
+  --bs-primary-rgb: 111,66,193;
+  --bs-link-color: #59359a;
+  --bs-link-color-rgb: 89,53,154;
+  --bs-link-hover-color: #4c2d83;
+  --bs-link-hover-color-rgb: 76,45,131;
+  --bs-primary-text-emphasis: #432874;
+  --bs-primary-bg-subtle: #e2d9f3;
+  --bs-primary-border-subtle: #c5b3e6;
+  --pyobs-accent: #6f42c1;
+}
+[data-bs-theme="dark"] {
+  --bs-link-color: #a98eda;
+  --bs-link-color-rgb: 169,142,218;
+  --bs-link-hover-color: #b69fe0;
+  --bs-link-hover-color-rgb: 182,159,224;
+  --bs-primary-text-emphasis: #a98eda;
+  --bs-primary-bg-subtle: #1c1030;
+  --bs-primary-border-subtle: #382160;
+}
+.btn-primary {
+  --bs-btn-color: #fff; --bs-btn-bg: #6f42c1; --bs-btn-border-color: #6f42c1;
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #5e38a4; --bs-btn-hover-border-color: #59359a;
+  --bs-btn-focus-shadow-rgb: 111,66,193;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #59359a; --bs-btn-active-border-color: #533291;
+  --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #6f42c1; --bs-btn-disabled-border-color: #6f42c1;
+}
+.btn-outline-primary {
+  --bs-btn-color: #59359a; --bs-btn-border-color: #6f42c1;
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #6f42c1; --bs-btn-hover-border-color: #6f42c1;
+  --bs-btn-focus-shadow-rgb: 111,66,193;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #6f42c1; --bs-btn-active-border-color: #6f42c1;
+  --bs-btn-disabled-color: #6f42c1; --bs-btn-disabled-border-color: #6f42c1;
+}
+[data-bs-theme="dark"] .btn-outline-primary { --bs-btn-color: #a98eda; }
+.form-control:focus, .form-select:focus {
+  border-color: #b7a0e0;
+  box-shadow: 0 0 0 .25rem rgba(111,66,193, .25);
+}
+.form-check-input:checked, .form-check-input[type="checkbox"]:indeterminate {
+  background-color: #6f42c1; border-color: #6f42c1;
+}
+.form-check-input:focus { border-color: #b7a0e0; box-shadow: 0 0 0 .25rem rgba(111,66,193, .25); }
+.nav-pills { --bs-nav-pills-link-active-bg: #6f42c1; --bs-nav-pills-link-active-color: #fff; }
+.list-group { --bs-list-group-active-bg: #6f42c1; --bs-list-group-active-border-color: #6f42c1; --bs-list-group-active-color: #fff; }
+.dropdown-menu { --bs-dropdown-link-active-bg: #6f42c1; --bs-dropdown-link-active-color: #fff; }
+.pagination {
+  --bs-pagination-color: #59359a; --bs-pagination-hover-color: #4c2d83;
+  --bs-pagination-focus-color: #4c2d83;
+  --bs-pagination-active-bg: #6f42c1; --bs-pagination-active-border-color: #6f42c1; --bs-pagination-active-color: #fff;
+  --bs-pagination-focus-box-shadow: 0 0 0 .25rem rgba(111,66,193, .25);
+}
+[data-bs-theme="dark"] .pagination { --bs-pagination-color: #a98eda; --bs-pagination-hover-color: #b69fe0; --bs-pagination-focus-color: #b69fe0; }
+.progress { --bs-progress-bar-bg: #6f42c1; }
+
