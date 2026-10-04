@@ -2,6 +2,9 @@
 name = "pyobs-archive"
 version = "2.1.2"
 description = "A webservice for an archive for astronomical images."
+authors = [{ name = "Tim-Oliver Husser", email = "thusser@uni-goettingen.de" }]
+license = "MIT"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "astropy>=6.1",
@@ -20,6 +23,12 @@ dependencies = [
     "pyobs-auth>=2.1.0",
     "requests>=2.31",
 ]
+
+[project.urls]
+Homepage = "https://www.pyobs.org"
+Documentation = "https://docs.pyobs.org"
+Repository = "https://github.com/pyobs/pyobs-archive"
+Issues = "https://github.com/pyobs/pyobs-archive/issues"
 
 [tool.uv]
 package = false

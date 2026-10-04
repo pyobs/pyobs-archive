@@ -1,0 +1,361 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Entries for releases before this file existed were generated from commit subjects.
+
+## [2.1.2] - 2026-09-29
+
+- Use brand color (purple) as page accent color (#66)
+- Add CLAUDE.md entry point pointing to specs/ conventions and tooling
+- Wire in KeycloakSessionRefreshMiddleware, require pyobs-auth>=2.1.0
+- Default ENFORCE_LOCAL_ACTIVE=True, preserving pre-2.1 is_active gating on top of the Keycloak group gate
+- Add plan section 3 data migration: activate existing Keycloak-linked inactive users
+- Centralize authorization via Keycloak groups, drop local activation gate
+- Specs: reference shared-authz-keycloak design doc (#823)
+- Fix csrftoken lookup in ingest_image.py after cookie rename
+- Require stable pyobs-auth>=2.0.0
+- Add UI screenshots to docs and README
+- Remove cross-repo specs/ link from Sphinx docs
+- Add Dependabot auto-merge workflow
+- Add .readthedocs.yml
+- read version from pyproject.toml instead of hand-maintained constant
+- Split docs into the web-app shape, correct stale REST API docs, slim README
+- Fix review nits: settings.py comment, test the env-var fallback
+- Rename pyobs-robotic-backend references to pyobs-portal
+- Give session/CSRF cookies a project-specific name
+- Mark project access control plan as done
+- Fix zip_view not enforcing IsAuthenticated (#47) (#48)
+- Project access control: permissions layer + endpoint filtering (rollout step 2) (#46)
+- Project access control: PROJECT field, backend client, sync_projects (rollout step 1) (#45)
+- Flesh out project access control plan: rollout sequence, concrete names
+- Dual login buttons: one-click IdP login via kc_idp_hint
+- Add plan for project-based access control (issue #42)
+- Add specs/index.md pointing at cross-repo plans for pyobs-archive
+- Add settings-configured admin account, bump pyobs-auth for nicer error page
+- Fix resolve_user username collision, restore manual-activation gate
+- Add Keycloak login/logout via pyobs-auth, remove LCO OAuth2 integration
+- Use the archive-specific icon on the login page
+- Replace favicon with a distinct archive icon
+- Add configurable pyobs logo to sidebar header
+- Add light/dark mode switcher
+- Replace nginx with Whitenoise for static file serving
+- Fix bootstrap-table loading overlay flashing white on refresh
+- Add Dependabot config for uv, targeting develop
+- to 2.0.0.dev
+- Update README for env-var config and Docker Compose setup
+- Add Docker Compose deployment with env-var configuration
+- Fix preview thumbnail crash on newer matplotlib
+- Load styles.css after page extra_head so our overrides win the cascade
+- Count selections in expanded detail tables toward download total
+- Fix bootstrap-table toolbar icons/dropdown for Bootstrap 5
+- Fix daterangepicker popup: grey text on white background
+- Move filter form into the sidebar, drop the nav links
+- Strip custom-font and BS4-layout rules from styles.css
+- Update archive index page to Bootstrap 5 classes and icons
+- Redesign login page as a dark centered card
+- Rewrite base.html for Bootstrap 5.3.3 with dark sidebar layout
+- Set DEFAULT_AUTO_FIELD to BigAutoField, silence W042 warning
+- Fix Profile.access_token/refresh_token to actually use EncryptedTextField
+- Add ModelAdmin customization for Frame
+- Remove duplicate RLEVEL entry, narrow bare except in check_file
+- Fix DATAMEAN default from True to None
+- Encrypt OAuth tokens at rest and use module logger
+- Replace wildcard CORS with an explicit, per-deployment allowlist
+- Delete dead duplicate REST_FRAMEWORK block
+- Parse Bearer auth header properly instead of substring match
+- Require manual activation for new odin/OAuth accounts, drop eng backdoor
+- Validate sort/order query params before hitting order_by()
+- Prevent path traversal via FITS header values in Frame.ingest
+- Include REQNUM and OBSNUM in Frame.get_info()
+- Enforce uniqueness on Frame.basename
+- Ignore REVIEW_TODO.md (local notes, not meant to be tracked)
+- Fix hardcoded secret, DEBUG default, stored XSS, and GET-based delete
+- Add tests for header parsing and API filtering, and CI to run them
+- Add CI to build and publish Docker image to GHCR on release
+- Drop unused django-crispy-forms, bump django-oauth-toolkit to 3.x
+- Switch to uv for dependency management
+- Add OBSNUM support alongside REQNUM
+- actually delete
+- new new line after percent
+- print percent
+- logging
+- check command
+- check file before deleting
+- added check_file
+- refactored delete
+- fpack in memory
+- more logging
+- fixed CMD
+- added new button for download all
+- fixed bug
+- added file
+- command for deleting files
+- added docs and pyproject.toml
+- always sort frames by id as second criterium
+- added cors headers
+- fixed 'count' in frames endpoint
+- limit results and return len of results, not data, which vastly improves speed
+- removed debug output
+- use csrf_token
+- removed login/logout code and set csrfmiddlewaretoken on zip download
+- changed order of js scripts
+- Token -> Bearer
+- added missing logo
+- v1.2
+
+## [2.1.1] - 2026-09-01
+
+- Maintenance release (dependency and metadata updates only).
+
+## [2.1.0] - 2026-08-31
+
+- Wire in KeycloakSessionRefreshMiddleware, require pyobs-auth>=2.1.0
+- Default ENFORCE_LOCAL_ACTIVE=True, preserving pre-2.1 is_active gating on top of the Keycloak group gate
+- Add plan section 3 data migration: activate existing Keycloak-linked inactive users
+- Centralize authorization via Keycloak groups, drop local activation gate
+- Specs: reference shared-authz-keycloak design doc (#823)
+- Fix csrftoken lookup in ingest_image.py after cookie rename
+
+## [2.0.0] - 2026-08-26
+
+- Require stable pyobs-auth>=2.0.0
+- Add UI screenshots to docs and README
+- Remove cross-repo specs/ link from Sphinx docs
+- Add Dependabot auto-merge workflow
+- Add .readthedocs.yml
+- read version from pyproject.toml instead of hand-maintained constant
+- Split docs into the web-app shape, correct stale REST API docs, slim README
+- Fix review nits: settings.py comment, test the env-var fallback
+- Rename pyobs-robotic-backend references to pyobs-portal
+- Give session/CSRF cookies a project-specific name
+- Mark project access control plan as done
+- Fix zip_view not enforcing IsAuthenticated (#47) (#48)
+- Project access control: permissions layer + endpoint filtering (rollout step 2) (#46)
+- Project access control: PROJECT field, backend client, sync_projects (rollout step 1) (#45)
+- Flesh out project access control plan: rollout sequence, concrete names
+- Dual login buttons: one-click IdP login via kc_idp_hint
+- Add plan for project-based access control (issue #42)
+- Add specs/index.md pointing at cross-repo plans for pyobs-archive
+- Add settings-configured admin account, bump pyobs-auth for nicer error page
+- Fix resolve_user username collision, restore manual-activation gate
+- Add Keycloak login/logout via pyobs-auth, remove LCO OAuth2 integration
+- Use the archive-specific icon on the login page
+- Replace favicon with a distinct archive icon
+- Add configurable pyobs logo to sidebar header
+- Add light/dark mode switcher
+- Replace nginx with Whitenoise for static file serving
+- Fix bootstrap-table loading overlay flashing white on refresh
+- Add Dependabot config for uv, targeting develop
+- to 2.0.0.dev
+- Update README for env-var config and Docker Compose setup
+- Add Docker Compose deployment with env-var configuration
+- Fix preview thumbnail crash on newer matplotlib
+- Load styles.css after page extra_head so our overrides win the cascade
+- Count selections in expanded detail tables toward download total
+- Fix bootstrap-table toolbar icons/dropdown for Bootstrap 5
+- Fix daterangepicker popup: grey text on white background
+- Move filter form into the sidebar, drop the nav links
+- Strip custom-font and BS4-layout rules from styles.css
+- Update archive index page to Bootstrap 5 classes and icons
+- Redesign login page as a dark centered card
+- Rewrite base.html for Bootstrap 5.3.3 with dark sidebar layout
+- Set DEFAULT_AUTO_FIELD to BigAutoField, silence W042 warning
+- Fix Profile.access_token/refresh_token to actually use EncryptedTextField
+- Add ModelAdmin customization for Frame
+- Remove duplicate RLEVEL entry, narrow bare except in check_file
+- Fix DATAMEAN default from True to None
+- Encrypt OAuth tokens at rest and use module logger
+- Replace wildcard CORS with an explicit, per-deployment allowlist
+- Delete dead duplicate REST_FRAMEWORK block
+- Parse Bearer auth header properly instead of substring match
+- Require manual activation for new odin/OAuth accounts, drop eng backdoor
+- Validate sort/order query params before hitting order_by()
+- Prevent path traversal via FITS header values in Frame.ingest
+- Include REQNUM and OBSNUM in Frame.get_info()
+- Enforce uniqueness on Frame.basename
+- Ignore REVIEW_TODO.md (local notes, not meant to be tracked)
+- Fix hardcoded secret, DEBUG default, stored XSS, and GET-based delete
+- Add tests for header parsing and API filtering, and CI to run them
+- Add CI to build and publish Docker image to GHCR on release
+- Drop unused django-crispy-forms, bump django-oauth-toolkit to 3.x
+- Switch to uv for dependency management
+- Add OBSNUM support alongside REQNUM
+- actually delete
+- new new line after percent
+- print percent
+- logging
+- check command
+- check file before deleting
+- added check_file
+- refactored delete
+- fpack in memory
+- more logging
+- fixed CMD
+
+## [1.2.3] - 2023-02-15
+
+- added new button for download all
+- fixed bug
+- added file
+- command for deleting files
+- added docs and pyproject.toml
+- always sort frames by id as second criterium
+- added cors headers
+- fixed 'count' in frames endpoint
+
+## [1.2.2] - 2021-07-01
+
+- limit results and return len of results, not data, which vastly improves speed
+- removed debug output
+- use csrf_token
+- removed login/logout code and set csrfmiddlewaretoken on zip download
+- changed order of js scripts
+
+## [1.2.1] - 2021-06-16
+
+- Token -> Bearer
+- added missing logo
+- v1.2
+- added migrations
+- login and logo
+- basic login
+- using oauth for login
+
+## [1.1.2] - 2021-02-04
+
+- filtering by None filter
+- filter Nones in list of filters before sorting
+
+## [1.1.1] - 2020-12-10
+
+- version
+- changed @authentication_classes to AUTH_CLASSES for admin stuff as well
+- formatted footer
+- added some more logging
+- added footer
+- moved "frames/" part of the URL from api app to main url
+- added download links for single files
+- removed HTTP_ROOT again
+- added admin view for deleting frames
+- added view for retrieving catalogs
+- removed version numbers
+- fixed bug when no extension is given in FNAME
+- upload size
+- changed max upload size
+- added HTTP_ROOT setting
+- changed path to font
+- adjusted CSS paths
+- password for postgres
+- put app config directly in settings instead of a dict
+- added option for ROOT_URL
+- - allow for an archive that doesn't require login - removed base.html
+- fixed bug
+- more output
+- changed length of REQNUM to 30
+- only ingest one image at a time
+- fixed auth for zip download
+- Added an ingest script
+- create user on successful token as well
+- checking for auth_token in POST
+- fixed URLs
+- 15 chars for imagetyp
+- working without debug mode
+- trying to make both token and remote token available via config
+- moved auth stuff into own app
+- first tests with auth
+- got rid of /api/ sub path
+- removed download of single files again
+- download link
+- fixed download URL
+- download URL
+- query in URL and REQNUM
+- removed debug output
+- working on URL reflecting query
+- added migration
+- added REQNUM
+- add bind
+- new CMD using threads
+- gunicorn with gthread
+- oauth test
+- increased data upload size
+- fixed bug when filtering for SITE
+- setting night
+- added "night" to search options
+- added "night" field to Frame table
+- added matplotlib
+- removed authorization from preview
+- preview images
+- display fits headers
+- including raw as related
+- made ManyToMany between Frames asymmetric
+- showing and downloading related frames
+- added filter for FILTER
+- changed font size in table
+- - link related - filter by rlevel
+- changed filename to basename
+- aggregate returns options for given filters
+- using zipstream for file download
+- changed request to return count/results instead of total/rows
+- set default table length to 25
+- layout
+- added missing js files for bootstrap
+- remove OBJECT and FILTER for BIAS and DARKs
+- binning in table and search options
+- getting binnings in aggregate
+- fixed writing binning
+- ingesting files from the command line
+- removed npm stuff
+- animate loading
+- removed telescope and instrument from path
+- removed npm/webpack
+- split app into api and frontend
+- added DAY-OBS to path
+- using fpack to fz fits files
+- working on detail view
+- fixed pagination and added table options
+- included query.fileDownload
+- made SITEID longer
+- error handling
+- tree-shaking bootstrap js
+- copying static from first build
+- fixed path in docker-compose file
+- moved docker-compose.yml into README
+- added date picker
+- added info about local_settings
+- import local_settings.py to change settings without having to edit the settings file itself
+- removed test file
+- added readme
+- added LICENSE
+- added Dockerfile and config for docker-compose
+- added requirements and Dockerfile
+- re-added limit
+- added favicon
+- using webpack
+- point search, which is a radius search 10' around point
+- working on position filter
+- added more API methods
+- changed url
+- file download workd
+- works with login now
+- calculating xyz vector
+- login/logout
+- new database layout
+- removed template
+- added download button
+- more filters
+- filtering
+- added authentication for create requests
+- pagination and stuff
+- adding and showing
+- working on image submission
+- insert images into database
+- testing http upload
+- added bootstrap-table
+- renamed query app to archive
+- started with query form
+- added models
+- initial commit
