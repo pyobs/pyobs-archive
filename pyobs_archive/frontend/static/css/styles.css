@@ -65,12 +65,16 @@ table {
 
 /* bootstrap-table.min.css (vendor) hardcodes a white background and dark dots for the
    refresh/sort/pagination loading overlay - override to match the current theme. */
-.bootstrap-table .fixed-table-loading {
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading.table-dark {
     background: var(--pyobs-surface-bg);
 }
-.bootstrap-table .fixed-table-loading .loading-wrap .animation-dot,
-.bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::after,
-.bootstrap-table .fixed-table-loading .loading-wrap .animation-wrap::before {
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading .loading-wrap .animation-dot,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading.table-dark .loading-wrap .animation-dot,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading .loading-wrap .animation-wrap::after,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading.table-dark .loading-wrap .animation-wrap::after,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading .loading-wrap .animation-wrap::before,
+html .bootstrap-table .fixed-table-container .fixed-table-body .fixed-table-loading.table-dark .loading-wrap .animation-wrap::before {
     background: var(--pyobs-loading-dot);
 }
 

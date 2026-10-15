@@ -1,6 +1,7 @@
 import math
 import logging
 import subprocess
+import shutil
 import time
 from urllib.parse import urljoin
 import os
@@ -12,6 +13,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.timezone import make_aware
 
+from pyobs_archive.api.ingest import publish_frame
 from pyobs_archive.api.utils import FilenameFormatter
 from pyobs_archive.api.portal import PortalClient, PortalUnavailable
 
@@ -281,83 +283,65 @@ class Frame(models.Model):
         # get archive root
         root = settings.ARCHIVE_ROOT
 
-        # open file
-        log.info('Opening new file to ingest...')
-        fits_file = fits.open(filename)
+        # Prepare and compress before changing any persistent state.
+        with fits.open(filename) as fits_file:
+            path = path_fmt(fits_file['SCI'].header)
+            if isinstance(filename_fmt, FilenameFormatter):
+                name = filename_fmt(fits_file['SCI'].header)
+            else:
+                name = os.path.basename(fits_file['SCI'].header['FNAME']).split('.')[0]
+            if not name or os.path.basename(name) != name or name in ('.', '..'):
+                raise ValueError('Invalid filename derived from FITS header: %r' % name)
+            archive_root = os.path.realpath(root)
+            file_path = os.path.realpath(os.path.join(archive_root, path))
+            if os.path.commonpath([archive_root, file_path]) != archive_root:
+                raise ValueError('Formatted path escapes ARCHIVE_ROOT: %r' % path)
 
-        # get path for archive
-        path = path_fmt(fits_file['SCI'].header)
+            executable = shutil.which('fpack')
+            if executable is None:
+                raise ValueError('fpack not found on the server process PATH; install CFITSIO '
+                                 'and add its bin directory to PATH.')
+            fits_file['SCI'].header['FNAME'] = name
+            header = fits_file['SCI'].header.copy()
+            with io.BytesIO() as bio:
+                fits_file.writeto(bio)
+                buffer = bio.getvalue()
 
-        # get filename for archive
-        if isinstance(filename_fmt, FilenameFormatter):
-            name = filename_fmt(fits_file['SCI'].header)
-        else:
-            tmp = os.path.basename(fits_file['SCI'].header['FNAME'])
-            name = tmp[:tmp.find('.')] if '.' in tmp else tmp
-        log.info('Formatted filename to %s.', name)
+        try:
+            proc = subprocess.Popen([executable, '-S', '-'], stdin=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            data, stderr = proc.communicate(buffer)
+        except OSError as exc:
+            raise ValueError('Could not launch fpack at %s: %s' % (executable, exc)) from exc
+        if proc.returncode:
+            detail = stderr[:2000].decode('utf-8', errors='replace')
+            raise ValueError('fpack exited with status %s: %s' % (proc.returncode, detail))
+        if not data:
+            raise ValueError('fpack returned empty output.')
+        try:
+            with fits.open(io.BytesIO(data)) as packed:
+                packed.verify('exception')
+                if packed['SCI'].data is None or packed['SCI'].data.size == 0:
+                    raise ValueError('SCI contains no image data')
+        except Exception as exc:
+            raise ValueError('fpack returned invalid FITS image data: %s' % exc) from exc
 
-        # PATH_FORMATTER/FILENAME_FORMATTER pull their values from the FITS header, so make sure
-        # neither can push the file outside of ARCHIVE_ROOT (via "..", an absolute path, or a
-        # separator hiding in a header value)
-        if not name or os.path.basename(name) != name or name in ('.', '..'):
-            raise ValueError('Invalid filename derived from FITS header: %r' % name)
-        archive_root = os.path.realpath(root)
-        file_path = os.path.realpath(os.path.join(archive_root, path))
-        if os.path.commonpath([archive_root, file_path]) != archive_root:
-            raise ValueError('Formatted path escapes ARCHIVE_ROOT: %r' % path)
+        def update_frame():
+            img = Frame.objects.select_for_update().filter(basename=name).first()
+            old_filename = img.filename if img is not None else None
+            if img is None:
+                img = Frame(basename=name)
+            img.path = path
+            img.add_fits_header(header)
+            img.resolve_project_from_reqnum()
+            img.save()
+            img.link_related(header)
+            return old_filename
 
-        # create new filename and set it in header
-        out_filename = name + '.fits.fz'
-        fits_file['SCI'].header['FNAME'] = name
-
-        # find or create image
-        img = Frame.objects.filter(basename=name).first() or Frame(basename=name)
-
-        # set headers
-        img.path = path
-        img.add_fits_header(fits_file['SCI'].header)
-
-        # fall back to REQNUM -> project resolution until the PROJECT FITS keyword is written
-        # upstream (see specs/plans/2026-08-20-archive-project-access-control.md, D4)
-        img.resolve_project_from_reqnum()
-
-        # write to database
-        log.info('Writing to database...')
-        img.save()
-
-        # link related
-        img.link_related(fits_file['SCI'].header)
-
-        # create path if necessary
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-
-        # write FITS file to byte stream and close
-        with io.BytesIO() as bio:
-            log.info('Writing file to buffer...')
-            fits_file.writeto(bio)
-            fits_file.close()
-            buffer = bytes(bio.getbuffer())
-            log.info(f"Wrote {len(buffer)} bytes.")
-
-        # pipe data into fpack
-        log.info('Fpacking file...')
-        proc = subprocess.Popen(['/usr/bin/fpack', '-S', '-'],
-                                stdin=subprocess.PIPE, stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-        data, _ = proc.communicate(buffer)
-        log.info(f"Packed file into {len(data)} bytes.")
-
-        # write file
-        with open(os.path.join(file_path, out_filename), 'wb') as f:
-            f.write(data)
-
-        # all good store it
-        if proc.returncode == 0:
-            log.info('Stored image as %s...', out_filename)
-            return img.basename
-        else:
-            raise ValueError('Could not fpack file %s.' % filename)
+        publish_frame(archive_root, name, os.path.join(file_path, name + '.fits.fz'),
+                      data, update_frame)
+        log.info('Stored image as %s.', name)
+        return name
 
     @property
     def filename(self):

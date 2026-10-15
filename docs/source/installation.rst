@@ -5,7 +5,7 @@ Docker Compose is the supported way to run *pyobs-archive* in production. A read
 `docker-compose.yaml <https://github.com/pyobs/pyobs-archive/blob/develop/docker-compose.yaml>`_
 is provided in the repository root, running two services:
 
-- **web** — the app itself (``ghcr.io/pyobs/pyobs/pyobs-archive:latest``), migrating, collecting
+- **web** — the app itself (``ghcr.io/pyobs/pyobs-archive:latest``), migrating, collecting
   static files, and serving via gunicorn. Static files are served directly by gunicorn through
   `Whitenoise <https://whitenoise.readthedocs.io/>`_, so no separate web server container is
   needed — put this behind your own reverse proxy for TLS termination. Served on port **8098**.
