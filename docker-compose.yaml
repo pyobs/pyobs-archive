@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/pyobs/pyobs/pyobs-archive:latest
+    image: ghcr.io/pyobs/pyobs-archive:latest
     command: >
       sh -c "
       uv run manage.py migrate &&
