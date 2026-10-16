@@ -292,11 +292,10 @@ $(function () {
         if (initializing)
             return;
 
-        if ($('#table').bootstrapTable('getData').length > 0) {
-            $('#table').bootstrapTable('selectPage', 1);
-        } else {
-            $('#table').bootstrapTable('refresh');
-        }
+        $('#table').bootstrapTable('refresh', {
+            pageNumber: 1,
+            silent: true
+        });
         history.pushState({}, '', '?q=a' + buildQueryParms());
     }
 
