@@ -6,6 +6,9 @@ while shared design docs and ADRs live in `pyobs-core`'s `specs/` tree (`specs/d
 
 Plans:
 
+- [plans/2026-10-15-archive-issue-74.md](plans/2026-10-15-archive-issue-74.md) — implemented in
+  [#79](https://github.com/pyobs/pyobs-archive/pull/79): portable, failure-safe ingestion,
+  FITS preview orientation, container image name, and loading-overlay theme fixes for #74.
 - [plans/2026-08-20-archive-project-access-control.md](plans/2026-08-20-archive-project-access-control.md) — plan for
   pyobs/pyobs-archive#42: per-project access control for frames (backend project/user mirror +
   endpoint filtering), the archive side of pyobs/pyobs-portal#79.

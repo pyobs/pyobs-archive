@@ -340,7 +340,7 @@ $(function () {
 
         // date range
         if (params.has('start') && params.has('end')) {
-            setDateRange(moment(params.get('start')), moment(params.get('end')));
+            setDateRange(moment.utc(params.get('start')), moment.utc(params.get('end')));
         } else {
             setDateRange(moment.utc().startOf('year'), moment.utc().endOf('year'));
         }

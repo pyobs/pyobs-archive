@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries for releases before this file existed were generated from commit subjects.
 
+## [Unreleased]
+
+- Find fpack on PATH and preserve archive files, frame metadata, and related links when ingestion fails (#74).
+- Display FITS previews with the first image row at the bottom (#74).
+- Correct the container image name in Compose and installation instructions (#74).
+- Apply theme colors to the frame-list loading overlay and animated dots (#74).
+
 ## [2.1.2] - 2026-09-29
 
 - Use brand color (purple) as page accent color (#66)
