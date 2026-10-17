@@ -13,6 +13,7 @@ Entries for releases before this file existed were generated from commit subject
 - Display FITS previews with the first image row at the bottom (#74).
 - Correct the container image name in Compose and installation instructions (#74).
 - Apply theme colors to the frame-list loading overlay and animated dots (#74).
+- Read the start and end times of archive links as UTC, so links work on computers not set to UTC (#78).
 
 ## [2.1.2] - 2026-09-29
 
