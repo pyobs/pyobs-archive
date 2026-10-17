@@ -6,9 +6,9 @@ while shared design docs and ADRs live in `pyobs-core`'s `specs/` tree (`specs/d
 
 Plans:
 
-- [plans/2026-10-17-archive-issue-78.md](plans/2026-10-17-archive-issue-78.md) — core fix
-  (8194b1a) released in v2.1.5: read archive-link `start`/`end` as UTC so links work on
-  non-UTC computers (#78); changelog, backend test, remaining verification.
+- [plans/2026-10-17-archive-issue-78.md](plans/2026-10-17-archive-issue-78.md) — implemented: core fix
+  (8194b1a) released in v2.1.5, tests in [#81](https://github.com/pyobs/pyobs-archive/pull/81): read archive-link `start`/`end` as UTC so links work on
+  non-UTC computers (#78).
 - [plans/2026-10-15-archive-issue-74.md](plans/2026-10-15-archive-issue-74.md) — implemented in
   [#79](https://github.com/pyobs/pyobs-archive/pull/79): portable, failure-safe ingestion,
   FITS preview orientation, container image name, and loading-overlay theme fixes for #74.

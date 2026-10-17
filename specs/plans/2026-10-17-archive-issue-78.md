@@ -1,8 +1,9 @@
 # Plan: Fix archive issue #78
 
-Status: core fix landed as 8194b1a ("Fix UTC parsing of archive link time windows (#78)") and
-is released in v2.1.5 (on `main`). Issue #78 is still open. The changelog entry and the backend
-test are in the follow-up PR; the browser check and closing #78 are left.
+Status: implemented. Core fix landed as 8194b1a ("Fix UTC parsing of archive link time
+windows (#78)"), released in v2.1.5. Backend tests and changelog entry in
+[#81](https://github.com/pyobs/pyobs-archive/pull/81). Issue #78 closed. The manual browser
+check in a non-UTC zone was not run.
 
 Issue: [pyobs/pyobs-archive#78](https://github.com/pyobs/pyobs-archive/issues/78),
 "Links into the archive with a time window find nothing when the viewer's computer is not on
@@ -68,7 +69,7 @@ just the link.
         DevTools Sensors > Location timezone override): open a portal-style link with
         `start`, `end` and `OBSNUM`, confirm the displayed range is UTC and frames are listed.
 - [x] Released in v2.1.5.
-- [ ] Close #78 referencing v2.1.5, after the browser check.
+- [x] Close #78 referencing v2.1.5 (closed without the browser check).
 
 ## Risks and related issues (not fixed here, flag only)
 
