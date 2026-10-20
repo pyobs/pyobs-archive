@@ -163,6 +163,32 @@ class FilterFramesTests(TestCase):
         self.assertEqual(list(result), [self.frame_b])
 
 
+class FilterFramesTimeWindowTests(TestCase):
+    """Pins the server side of #78: start/end are read as UTC, with or without an offset."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        _make_frame('early', DATE_OBS='2026-10-15T00:10:00Z', night='2026-10-14')
+        _make_frame('late', DATE_OBS='2026-10-15T04:10:00Z', night='2026-10-14')
+
+    def _basenames(self, **params):
+        request = self.factory.get('/frames/', params)
+        return set(filter_frames(Frame.objects.all(), request).values_list('basename', flat=True))
+
+    def test_naive_window_is_read_as_utc(self):
+        self.assertEqual(self._basenames(start='2026-10-15 00:00', end='2026-10-15 00:30'), {'early'})
+
+    def test_window_with_utc_offset(self):
+        self.assertEqual(
+            self._basenames(start='2026-10-15T00:00:00+00:00', end='2026-10-15T00:30:00+00:00'), {'early'}
+        )
+
+    def test_window_with_other_offset_is_converted(self):
+        self.assertEqual(
+            self._basenames(start='2026-10-15T02:00:00+02:00', end='2026-10-15T02:30:00+02:00'), {'early'}
+        )
+
+
 class SortFramesTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
